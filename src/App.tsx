@@ -515,6 +515,8 @@ export default function LifeTimelineApp() {
     const [color, setColor] = useState(initial?.color || "");
     const [imageData, setImageData] = useState<string | undefined>(initial?.imageData);
 
+    const presetColors = ["#60a5fa", "#34d399", "#f472b6", "#fb923c", "#a78bfa", "#fbbf24"];
+
     function addTag() {
       const t = tagInput.trim();
       if (!t) return;
@@ -576,7 +578,28 @@ export default function LifeTimelineApp() {
           </div>
           <div className="grid gap-1">
             <label className="text-xs text-black/60 dark:text-white/60">Цвет акцента</label>
-            <Input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+            <div className="flex flex-wrap items-center gap-2">
+              {presetColors.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
+                  className={cn(
+                    "h-6 w-6 rounded-full border border-black/20 dark:border-white/10",
+                    color === c && "ring-2 ring-offset-2 ring-indigo-400"
+                  )}
+                  style={{ background: c }}
+                  aria-label={`Выбрать цвет ${c}`}
+                />
+              ))}
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="h-6 w-6 cursor-pointer rounded-full border border-black/20 dark:border-white/10 p-0"
+                aria-label="Произвольный цвет"
+              />
+            </div>
           </div>
           <div className="grid gap-1">
             <label className="text-xs text-black/60 dark:text-white/60 flex items-center gap-2"><ImageIcon size={16}/> Фото (необязательно, 1 шт)</label>
