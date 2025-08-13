@@ -576,9 +576,9 @@ export default function LifeTimelineApp() {
               ))}
             </div>
           </div>
-          <div className="grid gap-1">
+          <div className="grid gap-3">
             <label className="text-xs text-black/60 dark:text-white/60">Цвет акцента</label>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3">
               {presetColors.map((c) => (
                 <button
                   key={c}
@@ -592,16 +592,9 @@ export default function LifeTimelineApp() {
                   aria-label={`Выбрать цвет ${c}`}
                 />
               ))}
-              <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="h-6 w-6 cursor-pointer rounded-full border border-black/20 dark:border-white/10 p-0"
-                aria-label="Произвольный цвет"
-              />
             </div>
           </div>
-          <div className="grid gap-1">
+          <div className="grid gap-3">
             <label className="text-xs text-black/60 dark:text-white/60 flex items-center gap-2"><ImageIcon size={16}/> Фото (необязательно, 1 шт)</label>
             <input type="file" accept="image/*" onChange={onFile} className="text-xs" />
             {imageData && (
