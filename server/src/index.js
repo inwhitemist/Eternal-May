@@ -115,14 +115,16 @@ app.put("/api/events/:id", auth, async (req, res) => {
 });
 
 app.delete("/api/events/:id", auth, async (req, res) => {
-  const ev = await Event.findById(req.params.id);
-  if (!ev) return res.status(404).json({ error: "not_found" });
-  if (String(ev.userId) !== req.user.uid) {
-    const me = await User.findById(req.user.uid);
-    if (me?.role !== "admin") return res.status(403).json({ error: "forbidden" });
-  }
-  await ev.deleteOne();
-  res.json({ ok: true });
+  try {
+    const ev = await Event.findById(req.params.id);
+    if (!ev) return res.status(404).json({ error: "not_found" });
+    if (String(ev.userId) !== req.user.uid) {
+      const me = await User.findById(req.user.uid);
+      if (me?.role !== "admin") return res.status(403).json({ error: "forbidden" });
+    }
+    await ev.deleteOne();
+    res.json({ ok: true });
+  } catch (e) { res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" }); }
 });
 
 connectDB(process.env.MONGODB_URI).then(() => {
