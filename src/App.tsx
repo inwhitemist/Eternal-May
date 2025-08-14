@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { isObjectId } from "./utils/isObjectId";
 import {
   Calendar as CalendarIcon,
   Plus,
@@ -72,7 +73,10 @@ const api = {
   getEvents: () => http<{ events: EventItem[] }>("/api/events"),
   createEvent: (e: EventItem) => http<{ event: EventItem }>("/api/events", { method: "POST", body: JSON.stringify(e) }),
   updateEvent: (id: string, e: EventItem) => http<{ event: EventItem }>(`/api/events/${id}`, { method: "PUT", body: JSON.stringify(e) }),
-  deleteEvent: (id: string) => http<{ ok: true }>(`/api/events/${id}`, { method: "DELETE" }),
+  deleteEvent: (id: string) => {
+  if (!isObjectId(id)) throw new Error("invalid_id");
+  return http<{ ok: true }>(`/api/events/${id}`, { method: "DELETE" });
+},
 };
 
 /* =========================
@@ -319,11 +323,19 @@ export default function LifeTimelineApp() {
     })();
   }
   function deleteEvent(id: string) {
-    (async () => {
-      try { await api.deleteEvent(id); await refreshEvents(); }
-      catch (e:any) { alert("Ошибка удаления: " + (e?.message || "unknown")); }
-    })();
-  }
+  (async () => {
+    try {
+      if (!isObjectId(id)) {
+        alert("Нельзя удалить локальное/несинхронизированное событие — у него нет серверного ID.");
+        return;
+      }
+      await api.deleteEvent(id);
+      await refreshEvents();
+    } catch (e: any) {
+      alert("Ошибка удаления: " + (e?.message || "unknown"));
+    }
+  })();
+}
   function clearAll() {
     if (!admin) return;
     if (!confirm("Удалить все события на сервере?")) return;

@@ -6,6 +6,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import mongoose from "mongoose";
 import { z } from "zod";
 import { connectDB, User, Event } from "./db.js";
 
@@ -27,13 +28,21 @@ app.use(cors({
   origin: [CLIENT_ORIGIN, `${CLIENT_ORIGIN}${CLIENT_ORIGIN_PATH}`],
   credentials: true
 }));
-
+function cookieOpts() {
+  const isLocal = (process.env.CLIENT_ORIGIN || "").startsWith("http://localhost");
+  return {
+    httpOnly: true,
+    sameSite: isLocal ? "lax" : "none",
+    secure: isLocal ? false : true,
+    maxAge: 7 * 24 * 3600 * 1000,
+  };
+}
 function setAuthCookie(res, payload) {
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
-  res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "none", maxAge: 7*24*3600*1000 });
+  res.cookie("token", token, cookieOpts());
 }
 function clearAuthCookie(res) {
-  res.clearCookie("token", { httpOnly: true, secure: true, sameSite: "none" });
+  res.clearCookie("token", cookieOpts());
 }
 function auth(req, res, next) {
   const token = req.cookies.token;
@@ -88,35 +97,51 @@ app.get("/api/me", auth, async (req, res) => {
 });
 
 app.get("/api/events", async (_req, res) => {
-  const events = await Event.find({}).sort({ date: 1 });
+  const docs = await Event.find({}).sort({ date: 1 });
+  const events = docs.map(d => d.toJSON()); // тут появится id и пропадёт _id/__v
   res.json({ events });
 });
 
 app.post("/api/events", auth, async (req, res) => {
   try {
     const data = eventSchema.parse(req.body);
-    const ev = await Event.create({ ...data, userId: req.user.uid });
-    res.json({ event: ev });
-  } catch (e) { res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" }); }
+    const { id, ...rest } = data;          // <-- выбрасываем client-side id
+    const ev = await Event.create({ ...rest, userId: req.user.uid });
+    res.json({ event: ev.toJSON() });
+  } catch (e) {
+    res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" });
+  }
 });
 
 app.put("/api/events/:id", auth, async (req, res) => {
   try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "invalid_id" });
+    }
     const data = eventSchema.parse(req.body);
-    const ev = await Event.findById(req.params.id);
+    const { id: _clientId, ...rest } = data;   // <-- игнорируем client-side id
+    const ev = await Event.findById(id);
     if (!ev) return res.status(404).json({ error: "not_found" });
     if (String(ev.userId) !== req.user.uid) {
       const me = await User.findById(req.user.uid);
       if (me?.role !== "admin") return res.status(403).json({ error: "forbidden" });
     }
-    Object.assign(ev, data); await ev.save();
-    res.json({ event: ev });
-  } catch (e) { res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" }); }
+    Object.assign(ev, rest);
+    await ev.save();
+    res.json({ event: ev.toJSON() });
+  } catch (e) {
+    res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" });
+  }
 });
 
 app.delete("/api/events/:id", auth, async (req, res) => {
   try {
-    const ev = await Event.findById(req.params.id);
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "invalid_id" });
+    }
+    const ev = await Event.findById(id);
     if (!ev) return res.status(404).json({ error: "not_found" });
     if (String(ev.userId) !== req.user.uid) {
       const me = await User.findById(req.user.uid);
@@ -124,9 +149,10 @@ app.delete("/api/events/:id", auth, async (req, res) => {
     }
     await ev.deleteOne();
     res.json({ ok: true });
-  } catch (e) { res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" }); }
+  } catch (e) {
+    res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" });
+  }
 });
-
 connectDB(process.env.MONGODB_URI).then(() => {
   app.listen(PORT, () => console.log(`API on :${PORT}`));
 }).catch(err => { console.error("DB connect error", err); process.exit(1); });
