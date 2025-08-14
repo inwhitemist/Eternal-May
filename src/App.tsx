@@ -45,8 +45,11 @@ type EventItem = {
 /* =========================
    API клиент (server-mode)
 ========================= */
+const isLocalhost = typeof window !== "undefined" && window.location.hostname === "localhost";
 const API_BASE: string =
-  (import.meta as any).env?.VITE_API_BASE || "http://localhost:8080";
+  isLocalhost
+    ? "http://localhost:8080"
+    : (import.meta as any).env?.VITE_API_BASE || "";
 
 type MeUser = { id: string; email: string; role: "admin" | "user" };
 
