@@ -519,7 +519,7 @@ export default function LifeTimelineApp() {
 
       {/* Hero */}
       <header className="relative isolate min-h-[100svh] overflow-hidden">
-        <AuroraLayer />
+        {/*<AuroraLayer /> */}
         <div className="pointer-events-none absolute inset-0 -z-20 opacity-40 [background:radial-gradient(600px_200px_at_10%_-10%,#a78bfa,transparent_60%),radial-gradient(600px_200px_at_90%_-10%,#f472b6,transparent_60%)]" />
         <div className="absolute inset-x-0 top-0 z-20">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
