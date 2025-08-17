@@ -39,10 +39,19 @@ const API_BASE: string =
 
 type MeUser = { id: string; email: string; role: "admin" | "user" };
 
+const TOKEN_KEY = "auth-token";
+let authToken: string | null =
+  typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+
 async function http<T = any>(path: string, opts: RequestInit = {}): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(opts.headers ? (opts.headers as Record<string, string>) : {}),
+  };
+  if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
   const res = await fetch(API_BASE + path, {
     credentials: "include",
-    headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
+    headers,
     ...opts,
   });
   if (!res.ok) {
@@ -58,17 +67,37 @@ async function http<T = any>(path: string, opts: RequestInit = {}): Promise<T> {
 
 const api = {
   me: () => http<{ user: MeUser }>("/api/me"),
-  login: (email: string, password: string) =>
-    http<{ user: MeUser }>("/api/auth/login", {
+  login: async (email: string, password: string) => {
+    const r = await http<{ user: MeUser; token?: string }>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
-    }),
-  logout: () => http<{ ok: true }>("/api/auth/logout", { method: "POST" }),
-  register: (email: string, password: string, invite: string) =>
-    http<{ user: MeUser }>("/api/auth/register", {
+    });
+    if (r.token) {
+      authToken = r.token;
+      if (typeof window !== "undefined")
+        localStorage.setItem(TOKEN_KEY, r.token);
+    }
+    return r;
+  },
+  logout: async () => {
+    const r = await http<{ ok: true }>("/api/auth/logout", { method: "POST" });
+    authToken = null;
+    if (typeof window !== "undefined")
+      localStorage.removeItem(TOKEN_KEY);
+    return r;
+  },
+  register: async (email: string, password: string, invite: string) => {
+    const r = await http<{ user: MeUser; token?: string }>("/api/auth/register", {
       method: "POST",
       body: JSON.stringify({ email, password, invite }),
-    }),
+    });
+    if (r.token) {
+      authToken = r.token;
+      if (typeof window !== "undefined")
+        localStorage.setItem(TOKEN_KEY, r.token);
+    }
+    return r;
+  },
   getEvents: () => http<{ events: EventItem[] }>("/api/events"),
   createEvent: (e: EventItem) =>
     http<{ event: EventItem }>("/api/events", {

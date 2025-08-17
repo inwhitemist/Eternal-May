@@ -38,15 +38,19 @@ function cookieOpts() {
     ...(isLocal ? {} : { partitioned: true }),
   };
 }
-function setAuthCookie(res, payload) {
-  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+function issueToken(payload) {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+}
+function setAuthCookie(res, token) {
   res.cookie("token", token, cookieOpts());
 }
 function clearAuthCookie(res) {
   res.clearCookie("token", cookieOpts());
 }
 function auth(req, res, next) {
-  const token = req.cookies.token;
+  let token = req.cookies.token;
+  const header = req.get("authorization");
+  if (!token && header?.startsWith("Bearer ")) token = header.slice(7);
   if (!token) return res.status(401).json({ error: "unauthorized" });
   try { req.user = jwt.verify(token, JWT_SECRET); next(); }
   catch { return res.status(401).json({ error: "invalid_token" }); }
@@ -73,8 +77,9 @@ app.post("/api/auth/register", async (req, res) => {
     const exists = await User.findOne({ email }); if (exists) return res.status(409).json({ error: "email_taken" });
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ email, passwordHash, role: "admin" });
-    setAuthCookie(res, { uid: user._id, role: user.role });
-    res.json({ user: { id: user._id, email: user.email, role: user.role } });
+    const token = issueToken({ uid: user._id, role: user.role });
+    setAuthCookie(res, token);
+    res.json({ user: { id: user._id, email: user.email, role: user.role }, token });
   } catch (e) { return res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" }); }
 });
 
@@ -85,8 +90,9 @@ app.post("/api/auth/login", async (req, res) => {
     if (!user) return res.status(401).json({ error: "invalid_credentials" });
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) return res.status(401).json({ error: "invalid_credentials" });
-    setAuthCookie(res, { uid: user._id, role: user.role });
-    res.json({ user: { id: user._id, email: user.email, role: user.role } });
+    const token = issueToken({ uid: user._id, role: user.role });
+    setAuthCookie(res, token);
+    res.json({ user: { id: user._id, email: user.email, role: user.role }, token });
   } catch (e) { return res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" }); }
 });
 
