@@ -35,6 +35,7 @@ function cookieOpts() {
     sameSite: isLocal ? "lax" : "none",
     secure: isLocal ? false : true,
     maxAge: 7 * 24 * 3600 * 1000,
+    ...(isLocal ? {} : { partitioned: true }),
   };
 }
 function setAuthCookie(res, payload) {
