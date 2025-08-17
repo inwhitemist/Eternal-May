@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
+import { Sparkles } from "lucide-react";
 
 export function cn(...classes: (string | boolean | undefined | null)[]) {
   return classes.filter(Boolean).join(" ");
@@ -157,7 +158,9 @@ export function ConfirmDialog({
           <Button variant="outline" onClick={onCancel}>
             {cancelText}
           </Button>
-          <Button onClick={onConfirm}>{confirmText}</Button>
+          <Button onClick={onConfirm}>
+            <Sparkles size={16} /> {confirmText}
+          </Button>
         </div>
       </div>
     </Dialog>

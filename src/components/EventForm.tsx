@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Tag, Image as ImageIcon, X } from "lucide-react";
+import { Tag, Image as ImageIcon, X, Sparkles } from "lucide-react";
 import { Button, Chip, Input, Textarea, cn } from "./ui";
 import { EventItem } from "../types";
 import { uid } from "../utils/helpers";
@@ -155,12 +155,12 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
           </div>
         </div>
       </div>
-      <div className="sticky bottom-0 -mx-4 mt-3 flex justify-end gap-2 border-t border-black/10 bg-white/90 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-neutral-900/90">
+      <div className="sticky bottom-0 -mx-4 mt-3 flex justify-end gap-2 border-t border-black/10 bg-white/90 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-neutral-900/90 rounded-b-2xl">
         <Button variant="outline" onClick={onCancel} type="button">
           <X size={16} /> Отмена
         </Button>
         <Button type="submit">
-          Сохранить
+          <Sparkles size={16} /> Сохранить
         </Button>
       </div>
     </form>

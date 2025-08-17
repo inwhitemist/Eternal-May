@@ -26,7 +26,7 @@ export default function DetailDialog({
   if (!open || !event) return null;
   return (
     <Dialog open={open} onClose={onClose}>
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-black/10 bg-white/95 px-4 py-3 dark:border-white/10 dark:bg-neutral-900/95">
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-black/10 bg-white/95 px-4 py-3 dark:border-white/10 dark:bg-neutral-900/95 rounded-t-2xl">
         <div className="flex items-center gap-2 text-lg font-semibold">
           <Info size={18} /> {event.title}
         </div>
