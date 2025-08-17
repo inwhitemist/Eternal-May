@@ -648,6 +648,7 @@ export default function LifeTimelineApp() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selected, setSelected] = useState<EventItem | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [deleting, setDeleting] = useState<EventItem | null>(null);
 
   // Фильтрация/поиск
   const allTags = useMemo(() => {
@@ -1062,7 +1063,7 @@ export default function LifeTimelineApp() {
               >
                 <Edit3 size={16} />
               </Button>
-              <Button variant="outline" onClick={() => deleteEvent(ev.id)}>
+              <Button variant="outline" onClick={() => setDeleting(ev)}>
                 <Trash2 size={16} />
               </Button>
             </div>
@@ -1477,6 +1478,20 @@ export default function LifeTimelineApp() {
     />
   )}
 </AnimatePresence>
+{/* ======= Подтверждение удаления ======= */}
+<ConfirmDialog
+  open={!!deleting}
+  title="Удалить событие?"
+  description={`Событие «${deleting?.title}» будет удалено безвозвратно.`}
+  confirmText="Удалить"
+  onConfirm={() => {
+    if (deleting) deleteEvent(deleting.id);
+    setDeleting(null);
+    setDetailOpen(false);
+    setSelected(null);
+  }}
+  onCancel={() => setDeleting(null)}
+/>
 {/* ======= Подтверждение выхода ======= */}
 <ConfirmDialog
   open={logoutConfirmOpen}
@@ -1575,10 +1590,7 @@ export default function LifeTimelineApp() {
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        deleteEvent(selected.id);
-                        setDetailOpen(false);
-                      }}
+                      onClick={() => setDeleting(selected)}
                     >
                       <Trash2 size={16} /> Удалить
                     </Button>
