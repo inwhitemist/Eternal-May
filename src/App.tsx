@@ -1034,7 +1034,7 @@ export default function LifeTimelineApp() {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: -10, opacity: 0 }}
         className={cn(
-          "group relative flex h-80 w-full flex-col overflow-hidden text-left rounded-3xl border border-black/5 p-5 shadow-lg backdrop-blur transition hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300",
+          "group relative flex h-45 w-full flex-col overflow-hidden text-left rounded-3xl border border-black/5 p-5 shadow-lg backdrop-blur transition hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300",
           "bg-white/70 dark:bg-white/5",
           className
         )}
@@ -1075,17 +1075,8 @@ export default function LifeTimelineApp() {
             <CalendarIcon size={14} /> {formatDateHuman(ev.date)}
           </span>
         </div>
-        {ev.imageData && (
-          <div className="mt-3 h-32 flex-shrink-0 overflow-hidden rounded-xl">
-            <img
-              src={ev.imageData}
-              alt={ev.title}
-              className="h-full w-full object-cover"
-            />
-          </div>
-        )}
         {ev.description && (
-          <p className="pt-3 text-sm leading-relaxed text-neutral-800 dark:text-neutral-200 line-clamp-3">
+          <p className="pt-3 text-sm leading-relaxed text-neutral-800 dark:text-neutral-200 line-clamp-1">
             {ev.description}
           </p>
         )}
