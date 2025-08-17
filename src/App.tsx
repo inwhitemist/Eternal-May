@@ -647,6 +647,7 @@ export default function LifeTimelineApp() {
   const [editing, setEditing] = useState<EventItem | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selected, setSelected] = useState<EventItem | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [deleting, setDeleting] = useState<EventItem | null>(null);
 
@@ -1033,7 +1034,7 @@ export default function LifeTimelineApp() {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: -10, opacity: 0 }}
         className={cn(
-          "group relative w-full text-left rounded-3xl border border-black/5 p-5 shadow-lg backdrop-blur transition hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300",
+          "group relative flex h-80 w-full flex-col overflow-hidden text-left rounded-3xl border border-black/5 p-5 shadow-lg backdrop-blur transition hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300",
           "bg-white/70 dark:bg-white/5",
           className
         )}
@@ -1074,13 +1075,22 @@ export default function LifeTimelineApp() {
             <CalendarIcon size={14} /> {formatDateHuman(ev.date)}
           </span>
         </div>
+        {ev.imageData && (
+          <div className="mt-3 h-32 flex-shrink-0 overflow-hidden rounded-xl">
+            <img
+              src={ev.imageData}
+              alt={ev.title}
+              className="h-full w-full object-cover"
+            />
+          </div>
+        )}
         {ev.description && (
-          <p className="pt-3 text-sm leading-relaxed text-neutral-800 dark:text-neutral-200">
+          <p className="pt-3 text-sm leading-relaxed text-neutral-800 dark:text-neutral-200 line-clamp-3">
             {ev.description}
           </p>
         )}
         {ev.tags?.length ? (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-auto pt-3 flex flex-wrap gap-2">
             {ev.tags.map((t) => (
               <span
                 key={t}
@@ -1545,17 +1555,18 @@ export default function LifeTimelineApp() {
                   <X size={18} />
                 </Button>
               </div>
-              <div className="grid max-h-[85vh] gap-3 overflow-y-auto p-4">
+              <div className="flex max-h-[85vh] flex-col gap-3 overflow-y-auto p-4">
                 <div className="text-sm opacity-80">
                   <CalendarIcon className="-mt-0.5 inline" size={14} />{" "}
                   {formatDateHuman(selected.date)}
                 </div>
                 {selected.imageData && (
-                  <div className="overflow-hidden rounded-2xl border border-black/10 dark:border-white/10">
+                  <div className="overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 flex-shrink-0">
                     <img
                       src={selected.imageData}
                       alt={selected.title}
-                      className="max-h-[60vh] w-full object-cover"
+                      className="max-h-[60vh] w-full cursor-pointer object-cover"
+                      onClick={() => setImagePreview(selected.imageData!)}
                     />
                   </div>
                 )}
@@ -1598,6 +1609,20 @@ export default function LifeTimelineApp() {
                 )}
               </div>
             </>
+          )}
+        </Dialog>
+      </AnimatePresence>
+
+      <AnimatePresence>
+        <Dialog open={!!imagePreview} onClose={() => setImagePreview(null)}>
+          {imagePreview && (
+            <div className="flex items-center justify-center p-4">
+              <img
+                src={imagePreview}
+                alt="Превью"
+                className="max-h-[85vh] w-auto max-w-[90vw] object-contain"
+              />
+            </div>
           )}
         </Dialog>
       </AnimatePresence>
