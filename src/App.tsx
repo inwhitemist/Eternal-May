@@ -2,6 +2,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { isObjectId } from "./utils/isObjectId";
+import { api, MeUser } from "./api";
+import ParallaxBackground from "./components/ParallaxBackground";
 import {
   Upload,
   Sparkles,
@@ -27,93 +29,6 @@ import { useEventFilters } from "./hooks/useEventFilters";
 import { useDialogs } from "./hooks/useDialogs";
 import { EventItem } from "./types";
 import { formatDateHuman, uid, downloadFile, toICS } from "./utils/helpers";
-
-/* =========================
-   API клиент (server-mode)
-========================= */
-const isLocalhost = typeof window !== "undefined" && window.location.hostname === "localhost";
-const API_BASE: string =
-  isLocalhost
-    ? "http://localhost:8080"
-    : (import.meta as any).env?.VITE_API_BASE || "";
-
-type MeUser = { id: string; email: string; role: "admin" | "user" };
-
-const TOKEN_KEY = "auth-token";
-let authToken: string | null =
-  typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
-
-async function http<T = any>(path: string, opts: RequestInit = {}): Promise<T> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(opts.headers ? (opts.headers as Record<string, string>) : {}),
-  };
-  if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
-  const res = await fetch(API_BASE + path, {
-    credentials: "include",
-    headers,
-    ...opts,
-  });
-  if (!res.ok) {
-    let msg = res.statusText;
-    try {
-      const j = await res.json();
-      if (j?.error) msg = j.error;
-    } catch {}
-    throw new Error(msg || "request_failed");
-  }
-  return (await res.json()) as T;
-}
-
-const api = {
-  me: () => http<{ user: MeUser }>("/api/me"),
-  login: async (email: string, password: string) => {
-    const r = await http<{ user: MeUser; token?: string }>("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
-    if (r.token) {
-      authToken = r.token;
-      if (typeof window !== "undefined")
-        localStorage.setItem(TOKEN_KEY, r.token);
-    }
-    return r;
-  },
-  logout: async () => {
-    const r = await http<{ ok: true }>("/api/auth/logout", { method: "POST" });
-    authToken = null;
-    if (typeof window !== "undefined")
-      localStorage.removeItem(TOKEN_KEY);
-    return r;
-  },
-  register: async (email: string, password: string, invite: string) => {
-    const r = await http<{ user: MeUser; token?: string }>("/api/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ email, password, invite }),
-    });
-    if (r.token) {
-      authToken = r.token;
-      if (typeof window !== "undefined")
-        localStorage.setItem(TOKEN_KEY, r.token);
-    }
-    return r;
-  },
-  getEvents: () => http<{ events: EventItem[] }>("/api/events"),
-  createEvent: (e: EventItem) =>
-    http<{ event: EventItem }>("/api/events", {
-      method: "POST",
-      body: JSON.stringify(e),
-    }),
-  updateEvent: (id: string, e: EventItem) =>
-    http<{ event: EventItem }>(`/api/events/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(e),
-    }),
-  deleteEvent: (id: string) => {
-    if (!isObjectId(id)) throw new Error("invalid_id");
-    return http<{ ok: true }>(`/api/events/${id}`, { method: "DELETE" });
-  },
-};
 
 /* =========================
    Вспомогательные утилиты
@@ -149,78 +64,6 @@ const SAMPLE: EventItem[] = [
     color: "#f472b6",
   },
 ];
-
-/* ======= Parallax фон для hero ======= */
-function ParallaxBackground() {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    function onMove(e: MouseEvent) {
-      if (!ref.current) return;
-      const { left, top, width, height } = ref.current.getBoundingClientRect();
-      const x = ((e.clientX - left) / width - 0.5) * 2;
-      const y = ((e.clientY - top) / height - 0.5) * 2;
-      if (!mounted) return;
-      ref.current.style.setProperty("--px", x.toFixed(3));
-      ref.current.style.setProperty("--py", y.toFixed(3));
-    }
-    window.addEventListener("mousemove", onMove);
-    return () => {
-      mounted = false;
-      window.removeEventListener("mousemove", onMove);
-    };
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
-      style={
-        {
-          "--px": "0",
-          "--py": "0",
-        } as React.CSSProperties
-      }
-      aria-hidden
-    >
-      {/* Слои параллакса */}
-      <span
-        className="absolute left-1/2 top-1/3 h-[600px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{
-          background:
-            "radial-gradient(circle at 50% 50%, #a78bfa88 0%, transparent 70%)",
-          transform:
-            "translate(-50%, -50%) scale(1.1) translate3d(calc(var(--px,0) * 40px), calc(var(--py,0) * 30px), 0)",
-          filter: "blur(40px)",
-          opacity: 0.3,
-        }}
-      />
-      <span
-        className="absolute left-1/2 top-1/2 h-[400px] w-[700px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{
-          background:
-            "radial-gradient(circle at 50% 50%, #f472b688 0%, transparent 70%)",
-          transform:
-            "translate(-50%, -50%) scale(1) translate3d(calc(var(--px,0) * 80px), calc(var(--py,0) * 60px), 0)",
-          filter: "blur(60px)",
-          opacity: 0.5,
-        }}
-      />
-      <span
-        className="absolute left-1/2 top-2/3 h-[300px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{
-          background:
-            "radial-gradient(circle at 50% 50%, #60a5fa88 0%, transparent 70%)",
-          transform:
-            "translate(-50%, -50%) scale(1) translate3d(calc(var(--px,0) * 120px), calc(var(--py,0) * 90px), 0)",
-          filter: "blur(80px)",
-          opacity: 0.4,
-        }}
-      />
-    </div>
-  );
-}
 
 /* =========================
    Основное приложение
