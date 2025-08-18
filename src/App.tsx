@@ -577,15 +577,26 @@ export default function LifeTimelineApp() {
           >
             <span className="relative z-10">Экскурсия в мой мир</span>
             {/* Слой свечения поверх текста */}
-            <span
+            <motion.span
               aria-hidden
               className="pointer-events-none absolute inset-0 z-0"
               style={{
+                "--mid": "40%",
+                "--end": "80%",
                 background:
-                  "radial-gradient(ellipse at 50% 60%, #a78bfa55 0%, #f472b655 40%, transparent 80%)",
+                  "radial-gradient(ellipse at 50% 60%, #a78bfa55 0%, #f472b655 var(--mid), transparent var(--end))",
                 filter: "blur(24px)",
                 opacity: 0.3,
                 mixBlendMode: "screen",
+                } as React.CSSProperties}
+              animate={{
+                "--mid": ["40%", "60%", "40%"],
+                "--end": ["80%", "90%", "80%"],
+              }}
+              transition={{
+                duration: 6,
+                ease: "easeInOut",
+                repeat: Infinity,
               }}
             />
           </motion.h1>
