@@ -568,15 +568,32 @@ export default function LifeTimelineApp() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-4xl font-black tracking-tight sm:text-6xl md:text-7xl cursor-default"
+            className="relative text-4xl font-black tracking-tight sm:text-6xl md:text-7xl cursor-default select-none"
+            style={{
+              textShadow:
+                "0 0 16px #a78bfa88, 0 0 32px #f472b688, 0 2px 8px #fff, 0 0 2px #fff",
+              // мягкое фиолетово-розовое свечение + белый "bleed"
+            }}
           >
-            Экскурсия в мой мир
+            <span className="relative z-10">Экскурсия в мой мир</span>
+            {/* Слой свечения поверх текста */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 z-0"
+              style={{
+                background:
+                  "radial-gradient(ellipse at 50% 60%, #a78bfa55 0%, #f472b655 40%, transparent 80%)",
+                filter: "blur(24px)",
+                opacity: 0.3,
+                mixBlendMode: "screen",
+              }}
+            />
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.05 }}
-            className="mt-4 max-w-2xl text-base leading-relaxed text-neutral-700 dark:text-neutral-300 cursor-default"
+            className="mt-6 max-w-2xl text-base leading-relaxed text-neutral-700 dark:text-neutral-300 cursor-default"
           >
             Таймлайн важных событий моей жизни. Фильтры, поиск, теги и красивый
             просмотр деталей.
