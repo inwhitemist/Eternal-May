@@ -36,36 +36,6 @@ import { formatDateHuman, uid, downloadFile, toICS } from "./utils/helpers";
 const THEME_KEY = "life-timeline-theme";
 
 /* =========================
-   Примеры (локальный fallback)
-========================= */
-const SAMPLE: EventItem[] = [
-  {
-    id: uid(),
-    date: "2019-07-12",
-    title: "Первое большое путешествие",
-    description: "Море, фото на плёнку и чувство полной свободы.",
-    tags: ["путешествия", "лето"],
-    color: "#60a5fa",
-  },
-  {
-    id: uid(),
-    date: "2021-11-05",
-    title: "Первый релиз собственного плагина",
-    description: "Долгие ночи за клавиатурой окупились.",
-    tags: ["код", "релиз"],
-    color: "#34d399",
-  },
-  {
-    id: uid(),
-    date: "2023-02-14",
-    title: "Особенный день",
-    description: "Кофе, снег и тёплый разговор.",
-    tags: ["личное"],
-    color: "#f472b6",
-  },
-];
-
-/* =========================
    Основное приложение
 ========================= */
 export default function LifeTimelineApp() {
@@ -84,30 +54,35 @@ export default function LifeTimelineApp() {
 
   // Данные теперь с сервера
   const [events, setEvents] = useState<EventItem[]>([]);
-   const [me, setMe] = useState<MeUser | null>(null);
-   const admin = Boolean(me);
+  const [me, setMe] = useState<MeUser | null>(null);
+  const logged = Boolean(me);
+  const admin = me?.role === "admin";
 
-   async function refreshMe() {
-     try {
-       const r = await api.me();
-       setMe(r.user);
-     } catch {
-       setMe(null);
-     }
-   }
-   async function refreshEvents() {
-     try {
-       const r = await api.getEvents();
-       setEvents(r.events || []);
-     } catch {
-       setEvents(SAMPLE); /* fallback чтобы не пусто */
-     }
-   }
+  async function refreshMe() {
+    try {
+      const r = await api.me();
+      setMe(r.user);
+    } catch {
+      setMe(null);
+    }
+  }
+  async function refreshEvents() {
+    try {
+      const r = await api.getEvents();
+      setEvents(r.events || []);
+    } catch {
+      setEvents([]);
+    }
+  }
 
-   useEffect(() => {
-     refreshMe();
-     refreshEvents();
-   }, []);
+  useEffect(() => {
+    refreshMe();
+  }, []);
+
+  useEffect(() => {
+    if (me) refreshEvents();
+    else setEvents([]);
+  }, [me]);
 
    const {
      query,
@@ -387,21 +362,21 @@ export default function LifeTimelineApp() {
                   </div>
                 )}
               </div>
-                          {!admin ? (
-              <Button variant="outline" onClick={handleLogin}>
-                <LogIn size={16} /> Войти
-              </Button>
-            ) : (
-              <>
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/70 dark:bg-white/10 border border-black/10 dark:border-white/10 text-xs">
-                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
-                  {me?.email}
-                </div>
-                <Button variant="outline" onClick={handleLogout}>
-                  <LogOut size={16} /> Выйти
+              {!logged ? (
+                <Button variant="outline" onClick={handleLogin}>
+                  <LogIn size={16} /> Войти
                 </Button>
-              </>
-            )}
+              ) : (
+                <>
+                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/70 dark:bg-white/10 border border-black/10 dark:border-white/10 text-xs">
+                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+                    {me?.email}
+                  </div>
+                  <Button variant="outline" onClick={handleLogout}>
+                    <LogOut size={16} /> Выйти
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -9,7 +9,7 @@ interface Props {
   onClose: () => void;
   onSuccess: () => void;
   login: (email: string, password: string) => Promise<any>;
-  register: (email: string, password: string, invite: string) => Promise<any>;
+  register: (email: string, password: string, invite?: string) => Promise<any>;
 }
 
 export default function AuthDialog({
@@ -36,12 +36,7 @@ export default function AuthDialog({
       if (mode === "login") {
         await login(form.email, form.password);
       } else {
-        if (!form.invite) {
-          setError("Нужен инвайт-код");
-          setLoading(false);
-          return;
-        }
-        await register(form.email, form.password, form.invite);
+        await register(form.email, form.password, form.invite || undefined);
       }
       onSuccess();
       onClose();
@@ -109,9 +104,9 @@ export default function AuthDialog({
 
           {mode === "register" && (
             <div className="grid gap-1">
-              <label className="text-xs opacity-70">Инвайт-код</label>
+              <label className="text-xs opacity-70">Инвайт-код (для админов)</label>
               <Input
-                placeholder="XXXX-XXXX"
+                placeholder="необязательно"
                 value={form.invite}
                 onChange={(e) => setForm({ ...form, invite: e.target.value })}
               />
