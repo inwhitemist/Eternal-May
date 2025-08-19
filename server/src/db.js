@@ -22,7 +22,7 @@ function applyToJSON(schema) {
 const UserSchema = new mongoose.Schema({
   email: { type: String, unique: true, required: true },
   passwordHash: { type: String, required: true },
-  role: { type: String, enum: ["admin", "user"], default: "admin" },
+  role: { type: String, enum: ["admin", "user"], default: "user" },
 }, { timestamps: true });
 
 const EventSchema = new mongoose.Schema({

@@ -56,10 +56,12 @@ export const api = {
       localStorage.removeItem(TOKEN_KEY);
     return r;
   },
-  register: async (email: string, password: string, invite: string) => {
+  register: async (email: string, password: string, invite?: string) => {
+    const payload: any = { email, password };
+    if (invite) payload.invite = invite;
     const r = await http<{ user: MeUser; token?: string }>("/api/auth/register", {
       method: "POST",
-      body: JSON.stringify({ email, password, invite }),
+      body: JSON.stringify(payload),
     });
     if (r.token) {
       authToken = r.token;

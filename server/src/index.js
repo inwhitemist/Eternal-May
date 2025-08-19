@@ -56,7 +56,7 @@ function auth(req, res, next) {
   catch { return res.status(401).json({ error: "invalid_token" }); }
 }
 
-const registerSchema = z.object({ email: z.string().email(), password: z.string().min(6), invite: z.string().min(1) });
+const registerSchema = z.object({ email: z.string().email(), password: z.string().min(6), invite: z.string().min(1).optional() });
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(6) });
 const eventSchema = z.object({
   id: z.string().optional(),
@@ -73,10 +73,14 @@ app.get("/api/health", (_, res) => res.json({ ok: true }));
 app.post("/api/auth/register", async (req, res) => {
   try {
     const { email, password, invite } = registerSchema.parse(req.body);
-    if (invite !== process.env.ADMIN_INVITE_CODE) return res.status(403).json({ error: "invalid_invite" });
     const exists = await User.findOne({ email }); if (exists) return res.status(409).json({ error: "email_taken" });
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await User.create({ email, passwordHash, role: "admin" });
+    let role = "user";
+    if (invite) {
+      if (invite !== process.env.ADMIN_INVITE_CODE) return res.status(403).json({ error: "invalid_invite" });
+      role = "admin";
+    }
+    const user = await User.create({ email, passwordHash, role });
     const token = issueToken({ uid: user._id, role: user.role });
     setAuthCookie(res, token);
     res.json({ user: { id: user._id, email: user.email, role: user.role }, token });
@@ -103,13 +107,14 @@ app.get("/api/me", auth, async (req, res) => {
   res.json({ user: { id: user._id, email: user.email, role: user.role } });
 });
 
-app.get("/api/events", async (_req, res) => {
+app.get("/api/events", auth, async (_req, res) => {
   const docs = await Event.find({}).sort({ date: 1 });
   const events = docs.map(d => d.toJSON()); // тут появится id и пропадёт _id/__v
   res.json({ events });
 });
 
 app.post("/api/events", auth, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
   try {
     const data = eventSchema.parse(req.body);
     const { id, ...rest } = data;          // <-- выбрасываем client-side id
@@ -121,6 +126,7 @@ app.post("/api/events", auth, async (req, res) => {
 });
 
 app.put("/api/events/:id", auth, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -130,10 +136,6 @@ app.put("/api/events/:id", auth, async (req, res) => {
     const { id: _clientId, ...rest } = data;   // <-- игнорируем client-side id
     const ev = await Event.findById(id);
     if (!ev) return res.status(404).json({ error: "not_found" });
-    if (String(ev.userId) !== req.user.uid) {
-      const me = await User.findById(req.user.uid);
-      if (me?.role !== "admin") return res.status(403).json({ error: "forbidden" });
-    }
     Object.assign(ev, rest);
     await ev.save();
     res.json({ event: ev.toJSON() });
@@ -143,6 +145,7 @@ app.put("/api/events/:id", auth, async (req, res) => {
 });
 
 app.delete("/api/events/:id", auth, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -150,10 +153,6 @@ app.delete("/api/events/:id", auth, async (req, res) => {
     }
     const ev = await Event.findById(id);
     if (!ev) return res.status(404).json({ error: "not_found" });
-    if (String(ev.userId) !== req.user.uid) {
-      const me = await User.findById(req.user.uid);
-      if (me?.role !== "admin") return res.status(403).json({ error: "forbidden" });
-    }
     await ev.deleteOne();
     res.json({ ok: true });
   } catch (e) {
