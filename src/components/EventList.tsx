@@ -1,4 +1,4 @@
-import React, { RefObject } from "react";
+import React, { RefObject, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Calendar as CalendarIcon, Edit3, Trash2 } from "lucide-react";
 import { Button, cn } from "./ui";
@@ -24,10 +24,53 @@ export default function EventList({
   onDelete,
   onSelect,
 }: Props) {
-  function EventCard({ ev, className = "" }: { ev: EventItem; className?: string }) {
+  function EventCard({
+    ev,
+    className = "",
+  }: {
+    ev: EventItem;
+    className?: string;
+  }) {
     const accent = ev.color || "#8b5cf6";
+    const cardRef = useRef<HTMLButtonElement | null>(null);
+
+    useEffect(() => {
+      if (!cardRef.current) return;
+      let destroyed = false;
+
+      (async () => {
+        try {
+          const mod = await import("vanilla-tilt");
+          const VanillaTilt = (mod as any).default || mod;
+          if (cardRef.current && !destroyed) {
+            VanillaTilt.init(cardRef.current, {
+              max: 5,
+              speed: 400,
+              glare: true,
+              "max-glare": 0.12,
+              scale: 1.03, // отключаем визуальное увеличение, чтобы не было масштабирования
+            });
+          }
+        } catch {
+          // ignore if module not available
+        }
+      })();
+
+      return () => {
+        destroyed = true;
+        if (cardRef.current && (cardRef.current as any).vanillaTilt) {
+          try {
+            (cardRef.current as any).vanillaTilt.destroy();
+          } catch {
+            /* ignore */
+          }
+        }
+      };
+    }, []);
+
     return (
       <motion.button
+        ref={cardRef}
         layout
         data-timeline-card
         tabIndex={0}
@@ -40,19 +83,36 @@ export default function EventList({
           "bg-white/70 dark:bg-white/5",
           className
         )}
-        style={{ backgroundImage: `linear-gradient(180deg, ${accent}0f, transparent 55%)` }}
+        style={{
+          backgroundImage: `linear-gradient(180deg, ${accent}0f, transparent 55%)`,
+        }}
       >
-        <div className="absolute inset-x-4 top-0 h-1 rounded-b-full" style={{ background: accent }} />
+        {/* neon glow layer — pointer-events-none, показывает подсветку по accent при hover */}
+        <div
+          aria-hidden
+          className="absolute inset-0 rounded-3xl pointer-events-none transition-opacity opacity-0 group-hover:opacity-100"
+          style={{
+            zIndex: 0,
+            // два слоя тени: размытие вокруг и яркий ореол
+            boxShadow: `0 12px 40px ${accent}73, 0 0 60px ${accent}55`,
+            filter: "blur(60px)",
+          }}
+        />
+        {/* content поверх glow — чтобы текст был читаем */}
+        <div
+          className="absolute inset-x-4 top-0 h-1 rounded-b-full"
+          style={{ background: accent }}
+        />
         <div className="flex items-start justify-between gap-3">
           <div className="text-base font-semibold text-neutral-900 dark:text-white sm:text-lg">
             {ev.title}
           </div>
           {admin && (
-            <div className="flex items-center gap-2 opacity-90" onClick={(e) => e.stopPropagation()}>
-              <Button
-                variant="soft"
-                onClick={() => onEdit(ev)}
-              >
+            <div
+              className="flex items-center gap-2 opacity-90"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button variant="soft" onClick={() => onEdit(ev)}>
                 <Edit3 size={16} />
               </Button>
               <Button variant="outline" onClick={() => onDelete(ev)}>
@@ -100,14 +160,20 @@ export default function EventList({
             className="rounded-3xl border border-black/10 bg-white/60 p-4 dark:border-white/10 dark:bg-white/5"
           >
             <div className="mb-3 flex items-center justify-between">
-              <div className="font-semibold text-neutral-900 dark:text-white">{m}</div>
-              <div className="text-xs opacity-60">{grouped[i].length} событий</div>
+              <div className="font-semibold text-neutral-900 dark:text-white">
+                {m}
+              </div>
+              <div className="text-xs opacity-60">
+                {grouped[i].length} событий
+              </div>
             </div>
             <div className="grid gap-2">
               {grouped[i].length ? (
                 grouped[i].map((ev) => <EventCard key={ev.id} ev={ev} />)
               ) : (
-                <div className="text-sm text-neutral-600 dark:text-neutral-400">Нет событий</div>
+                <div className="text-sm text-neutral-600 dark:text-neutral-400">
+                  Нет событий
+                </div>
               )}
             </div>
           </div>
@@ -119,13 +185,20 @@ export default function EventList({
   return (
     <AnimatePresence mode="popLayout">
       {view === "timeline" ? (
-        <motion.div ref={listRef} layout className="relative grid gap-5 sm:gap-6 md:grid-cols-2">
+        <motion.div
+          ref={listRef}
+          layout
+          className="relative grid gap-5 sm:gap-6 md:grid-cols-2"
+        >
           {events.length ? (
             events.map((ev, idx) => (
               <EventCard
                 key={ev.id}
                 ev={ev}
-                className={cn(idx % 2 === 1 && "md:-translate-y-2", "transition-transform")}
+                className={cn(
+                  idx % 2 === 1 && "md:-translate-y-2",
+                  "transition-transform"
+                )}
               />
             ))
           ) : (
