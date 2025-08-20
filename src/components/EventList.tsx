@@ -13,6 +13,7 @@ interface Props {
   onEdit: (ev: EventItem) => void;
   onDelete: (ev: EventItem) => void;
   onSelect: (ev: EventItem) => void;
+  highlightId?: string | null;
 }
 
 export default function EventList({
@@ -23,6 +24,7 @@ export default function EventList({
   onEdit,
   onDelete,
   onSelect,
+  highlightId,
 }: Props) {
   function EventCard({
     ev,
@@ -33,6 +35,7 @@ export default function EventList({
   }) {
     const isLegendary = Boolean(ev.code) || ev.tags?.includes("legendary");
     const accent = isLegendary ? ev.color || "#f5c542" : ev.color || "#8b5cf6";
+    const isHighlighted = highlightId === ev.id;
     const cardRef = useRef<HTMLButtonElement | null>(null);
 
     useEffect(() => {
@@ -76,8 +79,9 @@ export default function EventList({
         data-timeline-card
         tabIndex={0}
         onClick={() => onSelect(ev)}
-        initial={{ y: 10, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
+        initial={{ y: 10, opacity: 0, scale: isHighlighted ? 0.8 : 1 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        transition={isHighlighted ? { type: "spring", stiffness: 260, damping: 20 } : { duration: 0.2 }}
         exit={{ y: -10, opacity: 0 }}
         className={cn(
           "group relative flex h-45 w-full flex-col overflow-hidden text-left rounded-3xl border border-black/5 p-5 shadow-lg backdrop-blur transition hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300",
@@ -89,6 +93,15 @@ export default function EventList({
           backgroundImage: `linear-gradient(180deg, ${accent}0f, transparent 55%)`,
         }}
       >
+        {/* highlight effect when newly unlocked */}
+        {isHighlighted && (
+          <motion.div
+            className="absolute inset-0 rounded-3xl pointer-events-none border-2 border-yellow-400"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          />
+        )}
         {/* neon glow layer — pointer-events-none, показывает подсветку по accent при hover */}
         <div
           aria-hidden

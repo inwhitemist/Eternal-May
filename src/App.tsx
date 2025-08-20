@@ -18,6 +18,8 @@ import {
   Settings,
   FileJson,
   FileDown,
+  Trophy,
+  AlertCircle,
 } from "lucide-react";
 import { Button, Dialog, ConfirmDialog, Input } from "./components/ui";
 import FiltersPanel from "./components/FiltersPanel";
@@ -127,6 +129,9 @@ export default function LifeTimelineApp() {
 
   const [unlockOpen, setUnlockOpen] = useState(false);
   const [unlockCode, setUnlockCode] = useState("");
+  const [unlockError, setUnlockError] = useState<string | null>(null);
+  const [unlockedEvent, setUnlockedEvent] = useState<EventItem | null>(null);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
   useEffect(() => {
     const sequence = [
@@ -232,15 +237,18 @@ export default function LifeTimelineApp() {
 
   async function handleUnlock() {
     try {
-      await api.unlockEvent(unlockCode.trim());
+      const r = await api.unlockEvent(unlockCode.trim());
       await refreshEvents();
       setUnlockOpen(false);
       setUnlockCode("");
-      alert("Легендарное событие разблокировано");
+      setUnlockedEvent(r.event);
+      setHighlightedId(r.event.id);
+      setTimeout(() => setHighlightedId(null), 4000);
     } catch (e: any) {
-      if (e?.message === "invalid_code") alert("Неверный код");
-      else if (e?.message === "already_unlocked") alert("У вас уже есть это событие");
-      else alert("Ошибка, попробуйте позже");
+      if (e?.message === "invalid_code") setUnlockError("Неверный код");
+      else if (e?.message === "already_unlocked")
+        setUnlockError("У вас уже есть это событие");
+      else setUnlockError("Ошибка, попробуйте позже");
     }
   }
 
@@ -542,6 +550,7 @@ export default function LifeTimelineApp() {
             setSelected(ev);
             setDetailOpen(true);
           }}
+          highlightId={highlightedId}
         />
       </main>
 {/* ======= Модалка авторизации ======= */}
@@ -618,17 +627,61 @@ export default function LifeTimelineApp() {
   />
 
   <Dialog open={unlockOpen} onClose={() => setUnlockOpen(false)}>
-    <div className="p-4 grid gap-3">
-      <h3 className="text-lg font-semibold">Введите секретный код</h3>
-      <Input value={unlockCode} onChange={(e) => setUnlockCode(e.target.value)} />
+    <div className="p-6 grid gap-4">
+      <h3 className="text-lg font-semibold flex items-center gap-2">
+        <Sparkles size={18} /> Введите секретный код
+      </h3>
+      <Input
+        value={unlockCode}
+        onChange={(e) => setUnlockCode(e.target.value)}
+        placeholder="Например: DRAGON"
+      />
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={() => setUnlockOpen(false)}>
           Отмена
         </Button>
-        <Button onClick={handleUnlock}>Разблокировать</Button>
+        <Button onClick={handleUnlock}>
+          <Sparkles size={16} /> Разблокировать
+        </Button>
       </div>
     </div>
   </Dialog>
+
+  <Dialog open={!!unlockError} onClose={() => setUnlockError(null)}>
+    {unlockError && (
+      <div className="p-6 grid gap-4">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <AlertCircle className="text-red-500" size={18} /> Ошибка
+        </h3>
+        <p className="text-sm opacity-80">{unlockError}</p>
+        <div className="flex justify-end">
+          <Button onClick={() => setUnlockError(null)}>Ок</Button>
+        </div>
+      </div>
+    )}
+  </Dialog>
+
+  <AnimatePresence>
+    <Dialog open={!!unlockedEvent} onClose={() => setUnlockedEvent(null)}>
+      {unlockedEvent && (
+        <div className="p-6 flex flex-col items-center text-center gap-4">
+          <motion.div
+            initial={{ scale: 0, rotate: -90 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            className="text-yellow-500"
+          >
+            <Trophy size={48} />
+          </motion.div>
+          <div className="text-lg font-semibold">
+            Легендарное событие разблокировано!
+          </div>
+          <div className="text-sm opacity-80">{unlockedEvent.title}</div>
+          <Button onClick={() => setUnlockedEvent(null)}>Круто!</Button>
+        </div>
+      )}
+    </Dialog>
+  </AnimatePresence>
 
       <AnimatePresence>
         <Dialog open={!!imagePreview} onClose={() => setImagePreview(null)}>
