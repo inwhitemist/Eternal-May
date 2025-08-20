@@ -33,7 +33,13 @@ const EventSchema = new mongoose.Schema({
   tags: { type: [String], default: [] },
   color: { type: String },
   imageData: { type: String },
+  code: { type: String, default: null },
 }, { timestamps: true });
+
+EventSchema.index(
+  { userId: 1, code: 1 },
+  { unique: true, partialFilterExpression: { code: { $exists: true, $ne: null } } }
+);
 
 applyToJSON(UserSchema);
 applyToJSON(EventSchema);

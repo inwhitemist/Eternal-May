@@ -60,7 +60,7 @@ export default function DetailDialog({
                 key={t}
                 className="rounded-full border border-black/10 bg-black/5 px-2 py-0.5 text-xs dark:border-white/10 dark:bg-white/10"
               >
-                #{t}
+                #{t === "legendary" ? "легендарное" : t}
               </span>
             ))}
           </div>

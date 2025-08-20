@@ -19,7 +19,7 @@ import {
   FileJson,
   FileDown,
 } from "lucide-react";
-import { Button, Dialog, ConfirmDialog } from "./components/ui";
+import { Button, Dialog, ConfirmDialog, Input } from "./components/ui";
 import FiltersPanel from "./components/FiltersPanel";
 import EventList from "./components/EventList";
 import AuthDialog from "./components/AuthDialog";
@@ -121,9 +121,39 @@ export default function LifeTimelineApp() {
      setImagePreview,
      settingsOpen,
      setSettingsOpen,
-     deleting,
-     setDeleting,
-   } = useDialogs();
+   deleting,
+   setDeleting,
+  } = useDialogs();
+
+  const [unlockOpen, setUnlockOpen] = useState(false);
+  const [unlockCode, setUnlockCode] = useState("");
+
+  useEffect(() => {
+    const sequence = [
+      "ArrowUp",
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowLeft",
+      "ArrowRight",
+    ];
+    let idx = 0;
+    function onSecret(e: KeyboardEvent) {
+      if (e.key === sequence[idx]) {
+        idx++;
+        if (idx === sequence.length) {
+          setUnlockOpen(true);
+          idx = 0;
+        }
+      } else {
+        idx = 0;
+      }
+    }
+    window.addEventListener("keydown", onSecret);
+    return () => window.removeEventListener("keydown", onSecret);
+  }, []);
 
   // Навигация с клавы
   const listRef = useRef<HTMLDivElement>(null);
@@ -200,6 +230,20 @@ export default function LifeTimelineApp() {
     })();
   }
 
+  async function handleUnlock() {
+    try {
+      await api.unlockEvent(unlockCode.trim());
+      await refreshEvents();
+      setUnlockOpen(false);
+      setUnlockCode("");
+      alert("Легендарное событие разблокировано");
+    } catch (e: any) {
+      if (e?.message === "invalid_code") alert("Неверный код");
+      else if (e?.message === "already_unlocked") alert("У вас уже есть это событие");
+      else alert("Ошибка, попробуйте позже");
+    }
+  }
+
   // Импорт JSON (на сервер)
   function handleImportJSON(file: File) {
     if (!admin) return;
@@ -219,6 +263,7 @@ export default function LifeTimelineApp() {
               color: x.color || undefined,
               emoji: x.emoji || undefined,
               imageData: x.imageData || undefined,
+              code: x.code || undefined,
             }));
           for (const ev of valid) {
             try {
@@ -571,6 +616,19 @@ export default function LifeTimelineApp() {
     onDelete={(ev) => setDeleting(ev)}
     onImagePreview={(src) => setImagePreview(src)}
   />
+
+  <Dialog open={unlockOpen} onClose={() => setUnlockOpen(false)}>
+    <div className="p-4 grid gap-3">
+      <h3 className="text-lg font-semibold">Введите секретный код</h3>
+      <Input value={unlockCode} onChange={(e) => setUnlockCode(e.target.value)} />
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={() => setUnlockOpen(false)}>
+          Отмена
+        </Button>
+        <Button onClick={handleUnlock}>Разблокировать</Button>
+      </div>
+    </div>
+  </Dialog>
 
       <AnimatePresence>
         <Dialog open={!!imagePreview} onClose={() => setImagePreview(null)}>

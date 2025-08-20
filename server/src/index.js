@@ -65,8 +65,16 @@ const eventSchema = z.object({
   description: z.string().optional().default(""),
   tags: z.array(z.string()).optional().default([]),
   color: z.string().optional(),
-  imageData: z.string().optional()
+  imageData: z.string().optional(),
+  code: z.string().optional(),
 });
+
+const legendaryEventsData = {
+  TESTCODE: {
+    title: "Секретное событие",
+    description: "Это легендарное событие",
+  },
+};
 
 app.get("/api/health", (_, res) => res.json({ ok: true }));
 
@@ -107,8 +115,8 @@ app.get("/api/me", auth, async (req, res) => {
   res.json({ user: { id: user._id, email: user.email, role: user.role } });
 });
 
-app.get("/api/events", auth, async (_req, res) => {
-  const docs = await Event.find({}).sort({ date: 1 });
+app.get("/api/events", auth, async (req, res) => {
+  const docs = await Event.find({ userId: req.user.uid }).sort({ date: 1 });
   const events = docs.map(d => d.toJSON()); // тут появится id и пропадёт _id/__v
   res.json({ events });
 });
@@ -116,12 +124,47 @@ app.get("/api/events", auth, async (_req, res) => {
 app.post("/api/events", auth, async (req, res) => {
   if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
   try {
-    const data = eventSchema.parse(req.body);
-    const { id, ...rest } = data;          // <-- выбрасываем client-side id
-    const ev = await Event.create({ ...rest, userId: req.user.uid });
+    let data = eventSchema.parse(req.body);
+    let { id, code, tags = [], ...rest } = data;          // <-- выбрасываем client-side id
+    code = code ? code.trim().toUpperCase() : undefined;
+    if (code && !tags.includes("legendary")) tags.push("legendary");
+    if (code) {
+      const exists = await Event.findOne({ userId: req.user.uid, code });
+      if (exists) return res.status(409).json({ error: "duplicate_code" });
+    }
+    const ev = await Event.create({ ...rest, tags, code: code || null, userId: req.user.uid });
     res.json({ event: ev.toJSON() });
   } catch (e) {
     res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" });
+  }
+});
+
+app.post("/api/events/unlock", auth, async (req, res) => {
+  try {
+    const codeRaw = (req.body?.code || "").toString().trim().toUpperCase();
+    if (!codeRaw) return res.status(404).json({ error: "invalid_code" });
+    const data = legendaryEventsData[codeRaw];
+    if (!data) {
+      console.log("Invalid legendary code", codeRaw, "user", req.user.uid);
+      return res.status(404).json({ error: "invalid_code" });
+    }
+    const exists = await Event.findOne({ userId: req.user.uid, code: codeRaw });
+    if (exists) return res.status(409).json({ error: "already_unlocked" });
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const tags = Array.from(new Set([...(data.tags || []), "legendary"]));
+    const ev = await Event.create({
+      userId: req.user.uid,
+      title: data.title,
+      description: data.description || "",
+      date: data.date || todayISO,
+      tags,
+      color: data.color,
+      imageData: data.imageData,
+      code: codeRaw,
+    });
+    res.json({ event: ev.toJSON() });
+  } catch (e) {
+    res.status(400).json({ error: "bad_request" });
   }
 });
 
@@ -132,11 +175,17 @@ app.put("/api/events/:id", auth, async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ error: "invalid_id" });
     }
-    const data = eventSchema.parse(req.body);
-    const { id: _clientId, ...rest } = data;   // <-- игнорируем client-side id
+    let data = eventSchema.parse(req.body);
+    let { id: _clientId, code, tags = [], ...rest } = data;   // <-- игнорируем client-side id
+    code = code ? code.trim().toUpperCase() : undefined;
+    if (code && !tags.includes("legendary")) tags.push("legendary");
+    if (code) {
+      const exists = await Event.findOne({ userId: req.user.uid, code, _id: { $ne: id } });
+      if (exists) return res.status(409).json({ error: "duplicate_code" });
+    }
     const ev = await Event.findById(id);
     if (!ev) return res.status(404).json({ error: "not_found" });
-    Object.assign(ev, rest);
+    Object.assign(ev, rest, { tags, code: code || null });
     await ev.save();
     res.json({ event: ev.toJSON() });
   } catch (e) {
