@@ -8,7 +8,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import { z } from "zod";
-import { connectDB, User, Event } from "./db.js";
+import { connectDB, User, Event, LegendaryUnlock } from "./db.js";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -116,8 +116,12 @@ app.get("/api/me", auth, async (req, res) => {
 });
 
 app.get("/api/events", auth, async (req, res) => {
-  const docs = await Event.find({ userId: req.user.uid }).sort({ date: 1 });
-  const events = docs.map(d => d.toJSON()); // тут появится id и пропадёт _id/__v
+  const unlocked = await LegendaryUnlock.find({ userId: req.user.uid }).select("code");
+  const codes = unlocked.map(u => u.code);
+  const docs = await Event.find({
+    $or: [{ code: null }, { code: { $in: codes } }]
+  }).sort({ date: 1 });
+  const events = docs.map(d => d.toJSON());
   res.json({ events });
 });
 
@@ -129,10 +133,13 @@ app.post("/api/events", auth, async (req, res) => {
     code = code ? code.trim().toUpperCase() : undefined;
     if (code && !tags.includes("legendary")) tags.push("legendary");
     if (code) {
-      const exists = await Event.findOne({ userId: req.user.uid, code });
+      const exists = await Event.findOne({ code });
       if (exists) return res.status(409).json({ error: "duplicate_code" });
     }
     const ev = await Event.create({ ...rest, tags, code: code || null, userId: req.user.uid });
+    if (code) {
+      await LegendaryUnlock.create({ userId: req.user.uid, code });
+    }
     res.json({ event: ev.toJSON() });
   } catch (e) {
     res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" });
@@ -148,20 +155,23 @@ app.post("/api/events/unlock", auth, async (req, res) => {
       console.log("Invalid legendary code", codeRaw, "user", req.user.uid);
       return res.status(404).json({ error: "invalid_code" });
     }
-    const exists = await Event.findOne({ userId: req.user.uid, code: codeRaw });
-    if (exists) return res.status(409).json({ error: "already_unlocked" });
-    const todayISO = new Date().toISOString().slice(0, 10);
-    const tags = Array.from(new Set([...(data.tags || []), "legendary"]));
-    const ev = await Event.create({
-      userId: req.user.uid,
-      title: data.title,
-      description: data.description || "",
-      date: data.date || todayISO,
-      tags,
-      color: data.color,
-      imageData: data.imageData,
-      code: codeRaw,
-    });
+    const unlocked = await LegendaryUnlock.findOne({ userId: req.user.uid, code: codeRaw });
+    if (unlocked) return res.status(409).json({ error: "already_unlocked" });
+    let ev = await Event.findOne({ code: codeRaw });
+    if (!ev) {
+      const todayISO = new Date().toISOString().slice(0, 10);
+      const tags = Array.from(new Set([...(data.tags || []), "legendary"]));
+      ev = await Event.create({
+        title: data.title,
+        description: data.description || "",
+        date: data.date || todayISO,
+        tags,
+        color: data.color,
+        imageData: data.imageData,
+        code: codeRaw,
+      });
+    }
+    await LegendaryUnlock.create({ userId: req.user.uid, code: codeRaw });
     res.json({ event: ev.toJSON() });
   } catch (e) {
     res.status(400).json({ error: "bad_request" });
@@ -180,13 +190,20 @@ app.put("/api/events/:id", auth, async (req, res) => {
     code = code ? code.trim().toUpperCase() : undefined;
     if (code && !tags.includes("legendary")) tags.push("legendary");
     if (code) {
-      const exists = await Event.findOne({ userId: req.user.uid, code, _id: { $ne: id } });
+      const exists = await Event.findOne({ code, _id: { $ne: id } });
       if (exists) return res.status(409).json({ error: "duplicate_code" });
     }
     const ev = await Event.findById(id);
     if (!ev) return res.status(404).json({ error: "not_found" });
     Object.assign(ev, rest, { tags, code: code || null });
     await ev.save();
+    if (code) {
+      await LegendaryUnlock.updateOne(
+        { userId: req.user.uid, code },
+        {},
+        { upsert: true }
+      );
+    }
     res.json({ event: ev.toJSON() });
   } catch (e) {
     res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" });

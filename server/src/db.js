@@ -26,7 +26,7 @@ const UserSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const EventSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   date: { type: String, required: true },
   title: { type: String, required: true },
   description: { type: String },
@@ -37,12 +37,21 @@ const EventSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 EventSchema.index(
-  { userId: 1, code: 1 },
+  { code: 1 },
   { unique: true, partialFilterExpression: { code: { $exists: true, $ne: null } } }
 );
 
+const LegendaryUnlockSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  code: { type: String, required: true },
+}, { timestamps: true });
+
+LegendaryUnlockSchema.index({ userId: 1, code: 1 }, { unique: true });
+
 applyToJSON(UserSchema);
 applyToJSON(EventSchema);
+applyToJSON(LegendaryUnlockSchema);
 
 export const User = mongoose.model("User", UserSchema);
 export const Event = mongoose.model("Event", EventSchema);
+export const LegendaryUnlock = mongoose.model("LegendaryUnlock", LegendaryUnlockSchema);
