@@ -1,6 +1,6 @@
 import React, { RefObject, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Calendar as CalendarIcon, Edit3, Trash2 } from "lucide-react";
+import { Calendar as CalendarIcon, Edit3, Trash2, Trophy } from "lucide-react";
 import { Button, cn } from "./ui";
 import { EventItem } from "../types";
 import { formatDateHuman, getMonth, MONTHS } from "../utils/helpers";
@@ -31,7 +31,8 @@ export default function EventList({
     ev: EventItem;
     className?: string;
   }) {
-    const accent = ev.color || "#8b5cf6";
+    const isLegendary = Boolean(ev.code) || ev.tags?.includes("legendary");
+    const accent = isLegendary ? ev.color || "#f5c542" : ev.color || "#8b5cf6";
     const cardRef = useRef<HTMLButtonElement | null>(null);
 
     useEffect(() => {
@@ -81,6 +82,7 @@ export default function EventList({
         className={cn(
           "group relative flex h-45 w-full flex-col overflow-hidden text-left rounded-3xl border border-black/5 p-5 shadow-lg backdrop-blur transition hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300",
           "bg-white/70 dark:bg-white/5",
+          isLegendary && "border-yellow-400",
           className
         )}
         style={{
@@ -104,7 +106,8 @@ export default function EventList({
           style={{ background: accent }}
         />
         <div className="flex items-start justify-between gap-3">
-          <div className="text-base font-semibold text-neutral-900 dark:text-white sm:text-lg">
+          <div className="text-base font-semibold text-neutral-900 dark:text-white sm:text-lg flex items-center gap-1">
+            {isLegendary && <Trophy size={16} className="text-yellow-500" />}
             {ev.title}
           </div>
           {admin && (
@@ -136,10 +139,15 @@ export default function EventList({
             {ev.tags.map((t) => (
               <span
                 key={t}
-                className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-xs text-indigo-700 dark:text-indigo-300"
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-xs",
+                  t === "legendary"
+                    ? "bg-yellow-300/20 text-yellow-700 dark:text-yellow-300"
+                    : "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300"
+                )}
                 style={{ border: `1px solid ${accent}55` }}
               >
-                #{t}
+                #{t === "legendary" ? "легендарное" : t}
               </span>
             ))}
           </div>

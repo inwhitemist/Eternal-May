@@ -85,4 +85,9 @@ export const api = {
     if (!isObjectId(id)) throw new Error("invalid_id");
     return http<{ ok: true }>(`/api/events/${id}`, { method: "DELETE" });
   },
+  unlockEvent: (code: string) =>
+    http<{ event: EventItem }>("/api/events/unlock", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    }),
 };

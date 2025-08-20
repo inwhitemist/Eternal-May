@@ -20,6 +20,16 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
   const [tagInput, setTagInput] = useState("");
   const [color, setColor] = useState(initial?.color || "");
   const [imageData, setImageData] = useState<string | undefined>(initial?.imageData);
+  const [legendary, setLegendary] = useState(Boolean(initial?.code));
+  const [code, setCode] = useState(initial?.code || "");
+
+  React.useEffect(() => {
+    if (legendary) {
+      if (!tags.includes("legendary")) setTags((prev) => [...prev, "legendary"]);
+    } else {
+      if (tags.includes("legendary")) setTags((prev) => prev.filter((t) => t !== "legendary"));
+    }
+  }, [legendary]);
 
   function addTag() {
     const t = tagInput.trim();
@@ -49,12 +59,42 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
           tags,
           color: color || undefined,
           imageData,
+          ...(legendary ? { code: code.trim().toUpperCase() } : {}),
         };
         onSubmit(ev);
       }}
       className="flex min-h-0 flex-1 flex-col"
     >
       <div className="grid max-h-[60vh] gap-3 overflow-y-auto pr-1">
+        <div className="grid gap-1">
+          <label className="text-xs text-black/60 dark:text-white/60">Тип события</label>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant={legendary ? "soft" : "primary"}
+              onClick={() => setLegendary(false)}
+            >
+              Обычное
+            </Button>
+            <Button
+              type="button"
+              variant={legendary ? "primary" : "soft"}
+              onClick={() => setLegendary(true)}
+            >
+              Легендарное
+            </Button>
+          </div>
+        </div>
+        {legendary && (
+          <div className="grid gap-1">
+            <label className="text-xs text-black/60 dark:text-white/60">Код</label>
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              required
+            />
+          </div>
+        )}
         <div className="grid gap-1">
           <label className="text-xs text-black/60 dark:text-white/60">Дата</label>
           <Input
@@ -96,7 +136,15 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
           </div>
           <div className="flex flex-wrap gap-2 pt-1">
             {tags.map((t) => (
-              <Chip key={t} label={t} onClick={() => setTags(tags.filter((x) => x !== t))} />
+              <Chip
+                key={t}
+                label={t}
+                onClick={() =>
+                  t === "legendary" && legendary
+                    ? undefined
+                    : setTags(tags.filter((x) => x !== t))
+                }
+              />
             ))}
           </div>
         </div>

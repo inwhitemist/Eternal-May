@@ -7,4 +7,5 @@ export type EventItem = {
   color?: string;
   emoji?: string; // устар.
   imageData?: string;
+  code?: string | null;
 };
