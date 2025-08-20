@@ -45,7 +45,10 @@ function setAuthCookie(res, token) {
   res.cookie("token", token, cookieOpts());
 }
 function clearAuthCookie(res) {
-  res.clearCookie("token", cookieOpts());
+  // Using res.clearCookie may fail when additional attributes like
+  // `partitioned` are present, so overwrite the cookie with an
+  // immediately expired one using the same options.
+  res.cookie("token", "", { ...cookieOpts(), maxAge: 0 });
 }
 function auth(req, res, next) {
   let token = req.cookies.token;
