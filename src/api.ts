@@ -15,9 +15,9 @@ let authToken: string | null =
 
 export async function http<T = any>(path: string, opts: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     ...(opts.headers ? (opts.headers as Record<string, string>) : {}),
   };
+  if (opts.body !== undefined) headers["Content-Type"] = "application/json";
   if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
   const res = await fetch(API_BASE + path, {
     credentials: "include",
