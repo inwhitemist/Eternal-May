@@ -81,6 +81,11 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(e),
     }),
+  unlockEvent: (code: string) =>
+    http<{ event: EventItem }>("/api/events/unlock", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    }),
   deleteEvent: (id: string) => {
     if (!isObjectId(id)) throw new Error("invalid_id");
     return http<{ ok: true }>(`/api/events/${id}`, { method: "DELETE" });

@@ -31,7 +31,8 @@ export default function EventList({
     ev: EventItem;
     className?: string;
   }) {
-    const accent = ev.color || "#8b5cf6";
+    const isLegendary = Boolean(ev.code) || ev.tags?.includes("legendary");
+    const accent = ev.color || (isLegendary ? "#f5c542" : "#8b5cf6");
     const cardRef = useRef<HTMLButtonElement | null>(null);
 
     useEffect(() => {
@@ -81,6 +82,7 @@ export default function EventList({
         className={cn(
           "group relative flex h-45 w-full flex-col overflow-hidden text-left rounded-3xl border border-black/5 p-5 shadow-lg backdrop-blur transition hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300",
           "bg-white/70 dark:bg-white/5",
+          isLegendary && "ring-2 ring-yellow-400",
           className
         )}
         style={{
@@ -105,6 +107,7 @@ export default function EventList({
         />
         <div className="flex items-start justify-between gap-3">
           <div className="text-base font-semibold text-neutral-900 dark:text-white sm:text-lg">
+            {isLegendary && <span className="mr-1">🏆</span>}
             {ev.title}
           </div>
           {admin && (
@@ -136,10 +139,15 @@ export default function EventList({
             {ev.tags.map((t) => (
               <span
                 key={t}
-                className="rounded-full bg-indigo-500/10 px-2 py-0.5 text-xs text-indigo-700 dark:text-indigo-300"
-                style={{ border: `1px solid ${accent}55` }}
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-xs",
+                  t === "legendary"
+                    ? "bg-yellow-400/20 text-yellow-700 dark:text-yellow-300 border border-yellow-400/40"
+                    : "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border"
+                )}
+                style={{ border: t === "legendary" ? undefined : `1px solid ${accent}55` }}
               >
-                #{t}
+                #{t === "legendary" ? "легендарное" : t}
               </span>
             ))}
           </div>

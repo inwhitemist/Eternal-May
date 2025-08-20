@@ -65,8 +65,19 @@ const eventSchema = z.object({
   description: z.string().optional().default(""),
   tags: z.array(z.string()).optional().default([]),
   color: z.string().optional(),
-  imageData: z.string().optional()
+  imageData: z.string().optional(),
+  code: z.string().optional().nullable(),
 });
+
+const unlockSchema = z.object({ code: z.string().min(1) });
+
+const legendaryEventsData = {
+  MAYDAY: {
+    title: "Майский секрет",
+    description: "Скрытое легендарное событие",
+    tags: ["secret"],
+  },
+};
 
 app.get("/api/health", (_, res) => res.json({ ok: true }));
 
@@ -107,18 +118,52 @@ app.get("/api/me", auth, async (req, res) => {
   res.json({ user: { id: user._id, email: user.email, role: user.role } });
 });
 
-app.get("/api/events", auth, async (_req, res) => {
-  const docs = await Event.find({}).sort({ date: 1 });
-  const events = docs.map(d => d.toJSON()); // тут появится id и пропадёт _id/__v
+app.get("/api/events", auth, async (req, res) => {
+  const docs = await Event.find({ userId: req.user.uid }).sort({ date: 1 });
+  const events = docs.map((d) => d.toJSON());
   res.json({ events });
 });
 
 app.post("/api/events", auth, async (req, res) => {
-  if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
   try {
     const data = eventSchema.parse(req.body);
-    const { id, ...rest } = data;          // <-- выбрасываем client-side id
+    const { id, ...rest } = data;
+    if (rest.code) {
+      rest.code = rest.code.trim().toUpperCase();
+      if (!rest.tags.includes("legendary")) rest.tags.push("legendary");
+      const exists = await Event.findOne({ userId: req.user.uid, code: rest.code });
+      if (exists) return res.status(409).json({ error: "duplicate_code" });
+    }
     const ev = await Event.create({ ...rest, userId: req.user.uid });
+    res.status(201).json({ event: ev.toJSON() });
+  } catch (e) {
+    res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" });
+  }
+});
+
+app.post("/api/events/unlock", auth, async (req, res) => {
+  try {
+    const { code } = unlockSchema.parse(req.body);
+    const normalized = code.trim().toUpperCase();
+    const data = legendaryEventsData[normalized];
+    if (!data) {
+      console.warn("invalid legendary code", normalized, "user", req.user.uid);
+      return res.status(404).json({ error: "invalid_code" });
+    }
+    const exists = await Event.findOne({ userId: req.user.uid, code: normalized });
+    if (exists) return res.status(409).json({ error: "already_unlocked" });
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const tags = Array.from(new Set([...(data.tags || []), "legendary"]));
+    const ev = await Event.create({
+      userId: req.user.uid,
+      title: data.title,
+      description: data.description,
+      date: data.date || todayISO,
+      tags,
+      color: data.color,
+      imageData: data.imageData,
+      code: normalized,
+    });
     res.json({ event: ev.toJSON() });
   } catch (e) {
     res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" });
@@ -126,16 +171,23 @@ app.post("/api/events", auth, async (req, res) => {
 });
 
 app.put("/api/events/:id", auth, async (req, res) => {
-  if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ error: "invalid_id" });
     }
     const data = eventSchema.parse(req.body);
-    const { id: _clientId, ...rest } = data;   // <-- игнорируем client-side id
+    const { id: _clientId, ...rest } = data;
     const ev = await Event.findById(id);
     if (!ev) return res.status(404).json({ error: "not_found" });
+    if (ev.userId.toString() !== req.user.uid)
+      return res.status(403).json({ error: "forbidden" });
+    if (rest.code) {
+      rest.code = rest.code.trim().toUpperCase();
+      if (!rest.tags.includes("legendary")) rest.tags.push("legendary");
+      const exists = await Event.findOne({ userId: req.user.uid, code: rest.code, _id: { $ne: id } });
+      if (exists) return res.status(409).json({ error: "duplicate_code" });
+    }
     Object.assign(ev, rest);
     await ev.save();
     res.json({ event: ev.toJSON() });
@@ -145,7 +197,6 @@ app.put("/api/events/:id", auth, async (req, res) => {
 });
 
 app.delete("/api/events/:id", auth, async (req, res) => {
-  if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -153,6 +204,8 @@ app.delete("/api/events/:id", auth, async (req, res) => {
     }
     const ev = await Event.findById(id);
     if (!ev) return res.status(404).json({ error: "not_found" });
+    if (ev.userId.toString() !== req.user.uid)
+      return res.status(403).json({ error: "forbidden" });
     await ev.deleteOne();
     res.json({ ok: true });
   } catch (e) {

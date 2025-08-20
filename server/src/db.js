@@ -33,7 +33,23 @@ const EventSchema = new mongoose.Schema({
   tags: { type: [String], default: [] },
   color: { type: String },
   imageData: { type: String },
+  code: { type: String, default: null },
 }, { timestamps: true });
+
+EventSchema.index(
+  { userId: 1, code: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { code: { $type: "string" } },
+  },
+);
+
+EventSchema.pre("validate", function (next) {
+  if (this.code && !this.tags.includes("legendary")) {
+    this.tags.push("legendary");
+  }
+  next();
+});
 
 applyToJSON(UserSchema);
 applyToJSON(EventSchema);

@@ -20,6 +20,8 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
   const [tagInput, setTagInput] = useState("");
   const [color, setColor] = useState(initial?.color || "");
   const [imageData, setImageData] = useState<string | undefined>(initial?.imageData);
+  const [isLegendary, setIsLegendary] = useState(Boolean(initial?.code || initial?.tags?.includes("legendary")));
+  const [code, setCode] = useState(initial?.code || "");
 
   function addTag() {
     const t = tagInput.trim();
@@ -41,20 +43,60 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
     <form
       onSubmit={(e) => {
         e.preventDefault();
+        if (isLegendary && !code.trim()) {
+          alert("Код обязателен для легендарного события");
+          return;
+        }
+        const finalTags = isLegendary
+          ? Array.from(new Set([...(tags || []), "legendary"]))
+          : (tags || []).filter((t) => t !== "legendary");
         const ev: EventItem = {
           id: (initial?.id as string) || uid(),
           date,
           title: title.trim() || "Без названия",
           description: description.trim(),
-          tags,
+          tags: finalTags,
           color: color || undefined,
           imageData,
+          code: isLegendary ? code.trim().toUpperCase() : null,
         };
         onSubmit(ev);
       }}
       className="flex min-h-0 flex-1 flex-col"
     >
       <div className="grid max-h-[60vh] gap-3 overflow-y-auto pr-1">
+        <div className="grid gap-1">
+          <label className="text-xs text-black/60 dark:text-white/60">Тип события</label>
+          <div className="flex gap-2">
+            <Chip
+              label="Обычное"
+              selected={!isLegendary}
+              onClick={() => {
+                setIsLegendary(false);
+                setCode("");
+                setTags(tags.filter((t) => t !== "legendary"));
+              }}
+            />
+            <Chip
+              label="Легендарное"
+              selected={isLegendary}
+              onClick={() => {
+                setIsLegendary(true);
+                if (!tags.includes("legendary")) setTags([...tags, "legendary"]);
+              }}
+            />
+          </div>
+        </div>
+        {isLegendary && (
+          <div className="grid gap-1">
+            <label className="text-xs text-black/60 dark:text-white/60">Секретный код</label>
+            <Input
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              required={isLegendary}
+            />
+          </div>
+        )}
         <div className="grid gap-1">
           <label className="text-xs text-black/60 dark:text-white/60">Дата</label>
           <Input
@@ -96,7 +138,16 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
           </div>
           <div className="flex flex-wrap gap-2 pt-1">
             {tags.map((t) => (
-              <Chip key={t} label={t} onClick={() => setTags(tags.filter((x) => x !== t))} />
+              <Chip
+                key={t}
+                label={t}
+                selected={isLegendary && t === "legendary"}
+                onClick={
+                  isLegendary && t === "legendary"
+                    ? undefined
+                    : () => setTags(tags.filter((x) => x !== t))
+                }
+              />
             ))}
           </div>
         </div>

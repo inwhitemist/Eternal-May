@@ -19,7 +19,7 @@ import {
   FileJson,
   FileDown,
 } from "lucide-react";
-import { Button, Dialog, ConfirmDialog } from "./components/ui";
+import { Button, Dialog, ConfirmDialog, Input } from "./components/ui";
 import FiltersPanel from "./components/FiltersPanel";
 import EventList from "./components/EventList";
 import AuthDialog from "./components/AuthDialog";
@@ -57,6 +57,8 @@ export default function LifeTimelineApp() {
   const [me, setMe] = useState<MeUser | null>(null);
   const logged = Boolean(me);
   const admin = me?.role === "admin";
+  const [unlockOpen, setUnlockOpen] = useState(false);
+  const [unlockCode, setUnlockCode] = useState("");
 
   async function refreshMe() {
     try {
@@ -83,6 +85,33 @@ export default function LifeTimelineApp() {
     if (me) refreshEvents();
     else setEvents([]);
   }, [me]);
+
+  useEffect(() => {
+    const seq = [
+      "ArrowUp",
+      "ArrowUp",
+      "ArrowDown",
+      "ArrowDown",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowLeft",
+      "ArrowRight",
+    ];
+    let idx = 0;
+    function handler(e: KeyboardEvent) {
+      if (e.key === seq[idx]) {
+        idx++;
+        if (idx === seq.length) {
+          setUnlockOpen(true);
+          idx = 0;
+        }
+      } else {
+        idx = 0;
+      }
+    }
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
    const {
      query,
@@ -171,6 +200,22 @@ export default function LifeTimelineApp() {
       }
     })();
   }
+  function unlockLegendary() {
+    (async () => {
+      try {
+        await api.unlockEvent(unlockCode);
+        await refreshEvents();
+        setUnlockOpen(false);
+        setUnlockCode("");
+        alert("Легендарное событие разблокировано");
+      } catch (e: any) {
+        const msg = e?.message;
+        if (msg === "invalid_code") alert("Неверный код");
+        else if (msg === "already_unlocked") alert("У вас уже есть это событие");
+        else alert("Ошибка, попробуйте позже");
+      }
+    })();
+  }
   function deleteEvent(id: string) {
     (async () => {
       try {
@@ -219,6 +264,7 @@ export default function LifeTimelineApp() {
               color: x.color || undefined,
               emoji: x.emoji || undefined,
               imageData: x.imageData || undefined,
+              code: x.code || null,
             }));
           for (const ev of valid) {
             try {
@@ -571,6 +617,25 @@ export default function LifeTimelineApp() {
     onDelete={(ev) => setDeleting(ev)}
     onImagePreview={(src) => setImagePreview(src)}
   />
+
+  <Dialog open={unlockOpen} onClose={() => setUnlockOpen(false)}>
+    <div className="p-4 flex flex-col gap-3">
+      <h3 className="text-lg font-semibold">Введите секретный код</h3>
+      <Input
+        value={unlockCode}
+        onChange={(e) => setUnlockCode(e.target.value)}
+        placeholder="CODE"
+      />
+      <div className="flex justify-end gap-2 pt-2">
+        <Button variant="outline" onClick={() => setUnlockOpen(false)}>
+          Отмена
+        </Button>
+        <Button onClick={unlockLegendary}>
+          <Sparkles size={16} /> Разблокировать
+        </Button>
+      </div>
+    </div>
+  </Dialog>
 
       <AnimatePresence>
         <Dialog open={!!imagePreview} onClose={() => setImagePreview(null)}>
