@@ -150,15 +150,15 @@ app.post("/api/events/unlock", auth, async (req, res) => {
   try {
     const codeRaw = (req.body?.code || "").toString().trim().toUpperCase();
     if (!codeRaw) return res.status(404).json({ error: "invalid_code" });
-    const data = legendaryEventsData[codeRaw];
-    if (!data) {
-      console.log("Invalid legendary code", codeRaw, "user", req.user.uid);
-      return res.status(404).json({ error: "invalid_code" });
-    }
     const unlocked = await LegendaryUnlock.findOne({ userId: req.user.uid, code: codeRaw });
     if (unlocked) return res.status(409).json({ error: "already_unlocked" });
     let ev = await Event.findOne({ code: codeRaw });
     if (!ev) {
+      const data = legendaryEventsData[codeRaw];
+      if (!data) {
+        console.log("Invalid legendary code", codeRaw, "user", req.user.uid);
+        return res.status(404).json({ error: "invalid_code" });
+      }
       const todayISO = new Date().toISOString().slice(0, 10);
       const tags = Array.from(new Set([...(data.tags || []), "legendary"]));
       ev = await Event.create({
