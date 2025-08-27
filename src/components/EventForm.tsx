@@ -200,7 +200,11 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
               style={{ minHeight: 120, minWidth: 180, width: "100%", maxWidth: 320 }}
             >
               {imageData ? (
-                <img src={imageData} alt="Превью" className="h-28 w-full object-cover rounded-lg shadow" />
+                <img
+                  src={imageData}
+                  alt="Превью"
+                  className="max-h-28 max-w-full object-contain rounded-lg shadow"
+                />
               ) : (
                 <div className="flex flex-col items-center justify-center w-full h-full gap-2 py-2 text-indigo-500 dark:text-indigo-300">
                   <ImageIcon size={32} />
