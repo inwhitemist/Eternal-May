@@ -149,7 +149,7 @@ export default function EventList({
           </span>
         </div>
         {ev.description && (
-          <p className="pt-3 text-sm leading-relaxed text-neutral-800 dark:text-neutral-200 line-clamp-1">
+          <p className="pt-3 text-sm leading-relaxed text-neutral-800 dark:text-neutral-200 line-clamp-1 whitespace-pre-line">
             {ev.description}
           </p>
         )}

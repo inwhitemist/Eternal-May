@@ -153,7 +153,9 @@ export function ConfirmDialog({
     <Dialog open={open} onClose={onCancel}>
       <div className="p-4">
         <h3 className="text-lg font-semibold">{title}</h3>
-        {description && <p className="mt-2 text-sm opacity-80">{description}</p>}
+        {description && (
+          <p className="mt-2 text-sm opacity-80 whitespace-pre-line">{description}</p>
+        )}
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="outline" onClick={onCancel}>
             {cancelText}

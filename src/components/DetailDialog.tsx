@@ -49,7 +49,7 @@ export default function DetailDialog({
           </div>
         )}
         {event.description && (
-          <p className="text-sm leading-relaxed text-neutral-800 dark:text-neutral-200">
+          <p className="text-sm leading-relaxed text-neutral-800 dark:text-neutral-200 whitespace-pre-line">
             {event.description}
           </p>
         )}
