@@ -91,9 +91,15 @@ export default function EventList({
         )}
         style={{
           backgroundImage: `linear-gradient(180deg, ${accent}0f, transparent 55%)`,
-        }}
-      >
-        {/* highlight effect when newly unlocked */}
+            // небольшое золотое свечение для легендарных карточек (менее яркое)
+            ...(isLegendary
+            ? {
+              boxShadow: `0 6px 20px ${accent}33, 0 0 24px ${accent}22, 0 0 8px ${accent}11`,
+              }
+            : {}),
+          }}
+          >
+          {/* highlight effect when newly unlocked */}
         {isHighlighted && (
           <motion.div
             className="absolute inset-0 rounded-3xl pointer-events-none border-2 border-yellow-400"

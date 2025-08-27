@@ -629,12 +629,11 @@ export default function LifeTimelineApp() {
   <Dialog open={unlockOpen} onClose={() => setUnlockOpen(false)}>
     <div className="p-6 grid gap-4">
       <h3 className="text-lg font-semibold flex items-center gap-2">
-        <Sparkles size={18} /> Введите секретный код
+        <Sparkles size={18} /> Введите код
       </h3>
       <Input
         value={unlockCode}
         onChange={(e) => setUnlockCode(e.target.value)}
-        placeholder="Например: DRAGON"
       />
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={() => setUnlockOpen(false)}>
