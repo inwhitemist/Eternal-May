@@ -43,7 +43,7 @@ export default function DetailDialog({
             <img
               src={event.imageData}
               alt={event.title}
-              className="max-h-[60vh] w-full cursor-pointer object-cover"
+              className="max-h-[60vh] w-full cursor-pointer object-contain"
               onClick={() => onImagePreview(event.imageData!)}
             />
           </div>
