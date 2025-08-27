@@ -228,6 +228,70 @@ app.delete("/api/events/:id", auth, async (req, res) => {
     res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" });
   }
 });
+
+// ======= Админ: управление пользователями =======
+app.get("/api/admin/users", auth, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
+  const users = await User.find().select("email role");
+  const unlocks = await LegendaryUnlock.find({ userId: { $in: users.map(u => u._id) } }).select("userId code");
+  const map = new Map();
+  users.forEach(u => map.set(u._id.toString(), []));
+  unlocks.forEach(u => {
+    const arr = map.get(u.userId.toString());
+    if (arr) arr.push(u.code);
+  });
+  const data = users.map(u => ({ id: u._id, email: u.email, role: u.role, codes: map.get(u._id.toString()) || [] }));
+  res.json({ users: data });
+});
+
+app.post("/api/admin/users/:id/legendary", auth, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "invalid_id" });
+    }
+    const codeRaw = (req.body?.code || "").toString().trim().toUpperCase();
+    if (!codeRaw) return res.status(400).json({ error: "invalid_code" });
+    const exists = await LegendaryUnlock.findOne({ userId: id, code: codeRaw });
+    if (exists) return res.status(409).json({ error: "already_unlocked" });
+    let ev = await Event.findOne({ code: codeRaw });
+    if (!ev) {
+      const data = legendaryEventsData[codeRaw];
+      if (!data) return res.status(404).json({ error: "invalid_code" });
+      const todayISO = new Date().toISOString().slice(0, 10);
+      const tags = Array.from(new Set([...(data.tags || []), "legendary"]));
+      ev = await Event.create({
+        title: data.title,
+        description: data.description || "",
+        date: data.date || todayISO,
+        tags,
+        color: data.color,
+        imageData: data.imageData,
+        code: codeRaw,
+      });
+    }
+    await LegendaryUnlock.create({ userId: id, code: codeRaw });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: "bad_request" });
+  }
+});
+
+app.delete("/api/admin/users/:id/legendary/:code", auth, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
+  try {
+    const { id, code } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "invalid_id" });
+    }
+    const codeUpper = code.toString().trim().toUpperCase();
+    await LegendaryUnlock.deleteOne({ userId: id, code: codeUpper });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: "bad_request" });
+  }
+});
 connectDB(process.env.MONGODB_URI).then(() => {
   app.listen(PORT, () => console.log(`API on :${PORT}`));
 }).catch(err => { console.error("DB connect error", err); process.exit(1); });
