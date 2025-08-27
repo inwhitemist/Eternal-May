@@ -12,6 +12,7 @@ export function useDialogs() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [deleting, setDeleting] = useState<EventItem | null>(null);
+  const [usersOpen, setUsersOpen] = useState(false);
 
   useEffect(() => {
     function onSwitch(e: any) {
@@ -41,6 +42,8 @@ export function useDialogs() {
     setImagePreview,
     settingsOpen,
     setSettingsOpen,
+    usersOpen,
+    setUsersOpen,
     deleting,
     setDeleting,
   };

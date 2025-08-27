@@ -8,6 +8,7 @@ const API_BASE: string =
     : (import.meta as any).env?.VITE_API_BASE || "";
 
 export type MeUser = { id: string; email: string; role: "admin" | "user" };
+export type AdminUser = { id: string; email: string; role: string; codes: string[] };
 
 const TOKEN_KEY = "auth-token";
 let authToken: string | null =
@@ -89,5 +90,15 @@ export const api = {
     http<{ event: EventItem }>("/api/events/unlock", {
       method: "POST",
       body: JSON.stringify({ code }),
+    }),
+  getUsers: () => http<{ users: AdminUser[] }>("/api/admin/users"),
+  grantLegendary: (userId: string, code: string) =>
+    http<{ ok: true }>(`/api/admin/users/${userId}/legendary`, {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    }),
+  revokeLegendary: (userId: string, code: string) =>
+    http<{ ok: true }>(`/api/admin/users/${userId}/legendary/${code}`, {
+      method: "DELETE",
     }),
 };

@@ -20,6 +20,7 @@ import {
   FileDown,
   Trophy,
   AlertCircle,
+  Users,
 } from "lucide-react";
 import { Button, Dialog, ConfirmDialog, Input } from "./components/ui";
 import FiltersPanel from "./components/FiltersPanel";
@@ -27,6 +28,7 @@ import EventList from "./components/EventList";
 import AuthDialog from "./components/AuthDialog";
 import AddDialog from "./components/AddDialog";
 import DetailDialog from "./components/DetailDialog";
+import UsersDialog from "./components/UsersDialog";
 import { useEventFilters } from "./hooks/useEventFilters";
 import { useDialogs } from "./hooks/useDialogs";
 import { EventItem } from "./types";
@@ -119,12 +121,14 @@ export default function LifeTimelineApp() {
      setDetailOpen,
      selected,
      setSelected,
-     imagePreview,
-     setImagePreview,
-     settingsOpen,
-     setSettingsOpen,
-   deleting,
-   setDeleting,
+    imagePreview,
+    setImagePreview,
+    settingsOpen,
+    setSettingsOpen,
+    usersOpen,
+    setUsersOpen,
+    deleting,
+    setDeleting,
   } = useDialogs();
 
   const [unlockOpen, setUnlockOpen] = useState(false);
@@ -391,6 +395,15 @@ export default function LifeTimelineApp() {
                     </button>
                     {admin && (
                       <>
+                        <button
+                          className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10"
+                          onClick={() => {
+                            setSettingsOpen(false);
+                            setUsersOpen(true);
+                          }}
+                        >
+                          <Users size={16} /> Пользователи
+                        </button>
                         <label className="flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10">
                           <Upload size={16} /> Импорт JSON
                           <input
@@ -625,6 +638,8 @@ export default function LifeTimelineApp() {
     onDelete={(ev) => setDeleting(ev)}
     onImagePreview={(src) => setImagePreview(src)}
   />
+
+  <UsersDialog open={usersOpen} onClose={() => setUsersOpen(false)} />
 
   <Dialog open={unlockOpen} onClose={() => setUnlockOpen(false)}>
     <div className="p-6 grid gap-4">
