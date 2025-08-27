@@ -47,6 +47,27 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
     reader.readAsDataURL(file);
   }
 
+  React.useEffect(() => {
+    function handlePaste(e: ClipboardEvent) {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            const reader = new FileReader();
+            reader.onload = () => setImageData(String(reader.result));
+            reader.readAsDataURL(file);
+          }
+          break;
+        }
+      }
+    }
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, []);
+
   return (
     <form
       onSubmit={(e) => {
@@ -168,7 +189,7 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
         </div>
         <div className="grid gap-3">
           <label className="text-xs text-black/60 dark:text-white/60 flex items-center gap-2">
-            <ImageIcon size={16} /> Фото (необязательно, 1 шт)
+            <ImageIcon size={16} /> Фото (необязательно, 1 шт; можно вставить из буфера обмена)
           </label>
           <div className="flex flex-col items-start gap-2">
             <label
