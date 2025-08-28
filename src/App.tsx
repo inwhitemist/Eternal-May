@@ -22,13 +22,14 @@ import {
   AlertCircle,
   Users,
 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button, Dialog, ConfirmDialog, Input } from "./components/ui";
 import FiltersPanel from "./components/FiltersPanel";
 import EventList from "./components/EventList";
-import AuthDialog from "./components/AuthDialog";
-import AddDialog from "./components/AddDialog";
-import DetailDialog from "./components/DetailDialog";
-import UsersDialog from "./components/UsersDialog";
+const AuthDialog = React.lazy(() => import("./components/AuthDialog"));
+const AddDialog = React.lazy(() => import("./components/AddDialog"));
+const DetailDialog = React.lazy(() => import("./components/DetailDialog"));
+const UsersDialog = React.lazy(() => import("./components/UsersDialog"));
 import { useEventFilters } from "./hooks/useEventFilters";
 import { useDialogs } from "./hooks/useDialogs";
 import { EventItem } from "./types";
@@ -59,6 +60,7 @@ export default function LifeTimelineApp() {
   // Данные теперь с сервера
   const [events, setEvents] = useState<EventItem[]>([]);
   const [me, setMe] = useState<MeUser | null>(null);
+  const [loadingEvents, setLoadingEvents] = useState<boolean>(false);
   const logged = Boolean(me);
   const admin = me?.role === "admin";
 
@@ -72,10 +74,13 @@ export default function LifeTimelineApp() {
   }
   async function refreshEvents() {
     try {
+      setLoadingEvents(true);
       const r = await api.getEvents();
       setEvents(r.events || []);
     } catch {
       setEvents([]);
+    } finally {
+      setLoadingEvents(false);
     }
   }
 
@@ -85,7 +90,10 @@ export default function LifeTimelineApp() {
 
   useEffect(() => {
     if (me) refreshEvents();
-    else setEvents([]);
+    else {
+      setEvents([]);
+      setLoadingEvents(false);
+    }
   }, [me]);
 
    const {
@@ -136,6 +144,34 @@ export default function LifeTimelineApp() {
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const [unlockedEvent, setUnlockedEvent] = useState<EventItem | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  // Loading overlay handling: scroll away, lock scroll, then restore
+  const prevScrollRef = useRef(0);
+  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
+  useEffect(() => {
+    if (loadingEvents && logged) {
+      try { prevScrollRef.current = window.scrollY; } catch {}
+      setShowLoadingOverlay(true);
+      try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch {}
+      try { document.body.style.overflow = "hidden"; } catch {}
+    } else {
+      try { document.body.style.overflow = ""; } catch {}
+      // small delay to avoid flicker
+      const t = setTimeout(() => setShowLoadingOverlay(false), 150);
+      return () => clearTimeout(t);
+    }
+  }, [loadingEvents, logged]);
+
+  // Close image preview on Escape
+  useEffect(() => {
+    if (!imagePreview) return;
+    const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setImagePreview(null); };
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [imagePreview, setImagePreview]);
+  const handleSelect = React.useCallback((ev: EventItem) => {
+    setSelected(ev);
+    setDetailOpen(true);
+  }, [setSelected, setDetailOpen]);
 
   useEffect(() => {
     const sequence = [
@@ -510,77 +546,112 @@ export default function LifeTimelineApp() {
         ref={timelineAnchorRef}
         className="mx-auto max-w-6xl mt-6 px-4 pb-24"
       >
-        <FiltersPanel
-          query={query}
-          setQuery={setQuery}
-          year={year}
-          setYear={setYear}
-          month={month}
-          setMonth={setMonth}
-          activeTags={activeTags}
-          setActiveTags={setActiveTags}
-          years={years}
-          allTags={allTags}
-          resetFilters={() => {
-            setActiveTags([]);
-            setYear("all");
-            setMonth("all");
-            setQuery("");
-          }}
-          resultsCount={filtered.length}
-          admin={admin}
-          onAdd={() => {
-            setEditing(null);
-            setDialogOpen(true);
-          }}
-        />
-
-        {year !== "all" && (
-          <div className="mb-4 flex items-center justify-between">
-            <Button variant="soft" onClick={prevYear}>
-              <ChevronLeft size={16} /> Предыдущий
-            </Button>
-            <div className="rounded-full border border-black/10 bg-white/70 px-4 py-1 text-sm shadow-sm dark:border-white/10 dark:bg-white/10">
-              {year}
+        {!logged ? (
+          <div className="mx-auto max-w-2xl">
+            <div className="rounded-3xl border border-black/10 bg-white/70 p-6 text-center shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+              <div className="mx-auto mb-3 inline-flex items-center justify-center gap-2 text-lg font-semibold">
+                <AlertCircle className="text-yellow-500" size={18} />
+                Доступ к событиям только для авторизованных
+              </div>
+              <p className="mx-auto max-w-md text-sm text-neutral-700 dark:text-neutral-300">
+                Вы не увидите события, пока не войдёте в аккаунт. Войдите или создайте аккаунт, чтобы продолжить.
+              </p>
+              <div className="mt-5 flex flex-col items-center justify-center gap-2 sm:flex-row">
+                <Button
+                  onClick={() => {
+                    setAuthMode("login");
+                    setAuthOpen(true);
+                  }}
+                >
+                  <LogIn size={16} /> Войти
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setAuthMode("register");
+                    setAuthOpen(true);
+                  }}
+                >
+                  <Sparkles size={16} /> Создать аккаунт
+                </Button>
+              </div>
             </div>
-            <Button variant="soft" onClick={nextYear}>
-              Следующий <ChevronRight size={16} />
-            </Button>
           </div>
-        )}
+        ) : (
+          <>
+            <FiltersPanel
+              query={query}
+              setQuery={setQuery}
+              year={year}
+              setYear={setYear}
+              month={month}
+              setMonth={setMonth}
+              activeTags={activeTags}
+              setActiveTags={setActiveTags}
+              years={years}
+              allTags={allTags}
+              resetFilters={() => {
+                setActiveTags([]);
+                setYear("all");
+                setMonth("all");
+                setQuery("");
+              }}
+              resultsCount={filtered.length}
+              admin={admin}
+              onAdd={() => {
+                setEditing(null);
+                setDialogOpen(true);
+              }}
+            />
 
-        <EventList
-          events={filtered}
-          view={view}
-          listRef={listRef}
-          admin={admin}
-          onEdit={(ev) => {
-            setEditing(ev);
-            setDialogOpen(true);
-          }}
-          onDelete={(ev) => setDeleting(ev)}
-          onSelect={(ev) => {
-            setSelected(ev);
-            setDetailOpen(true);
-          }}
-          highlightId={highlightedId}
-        />
+            {year !== "all" && (
+              <div className="mb-4 flex items-center justify-between">
+                <Button variant="soft" onClick={prevYear}>
+                  <ChevronLeft size={16} /> Предыдущий
+                </Button>
+                <div className="rounded-full border border-black/10 bg-white/70 px-4 py-1 text-sm shadow-sm dark:border-white/10 dark:bg-white/10">
+                  {year}
+                </div>
+                <Button variant="soft" onClick={nextYear}>
+                  Следующий <ChevronRight size={16} />
+                </Button>
+              </div>
+            )}
+
+            <EventList
+              events={filtered}
+              view={view}
+              listRef={listRef}
+              admin={admin}
+              loading={loadingEvents}
+              onEdit={(ev) => {
+                setEditing(ev);
+                setDialogOpen(true);
+              }}
+              onDelete={(ev) => setDeleting(ev)}
+              onSelect={handleSelect}
+              highlightId={highlightedId}
+            />
+          </>
+        )}
       </main>
 {/* ======= Модалка авторизации ======= */}
-<AnimatePresence>
-    {authOpen && (
-      <AuthDialog
-        open={authOpen}
-        mode={authMode}
-        onClose={() => setAuthOpen(false)}
-        onSuccess={async () => {
-          await refreshMe();
-        }}
-        login={api.login}
-        register={api.register}
-      />
-    )}
-</AnimatePresence>
+<React.Suspense fallback={null}>
+  <AnimatePresence>
+      {authOpen && (
+        <AuthDialog
+          open={authOpen}
+          mode={authMode}
+          onClose={() => setAuthOpen(false)}
+          onSuccess={async () => {
+            await refreshMe();
+          }}
+          login={api.login}
+          register={api.register}
+        />
+      )}
+  </AnimatePresence>
+</React.Suspense>
 {/* ======= Подтверждение удаления ======= */}
 <ConfirmDialog
   open={!!deleting}
@@ -611,35 +682,41 @@ export default function LifeTimelineApp() {
     }}
     onCancel={() => setLogoutConfirmOpen(false)}
   />
-  <AddDialog
-    open={dialogOpen}
-    initial={editing}
-    onClose={() => {
-      setDialogOpen(false);
-      setEditing(null);
-    }}
-    onSubmit={(ev) => {
-      upsertEvent(ev);
-      setDialogOpen(false);
-      setEditing(null);
-    }}
-  />
+  <React.Suspense fallback={null}>
+    <AddDialog
+      open={dialogOpen}
+      initial={editing}
+      onClose={() => {
+        setDialogOpen(false);
+        setEditing(null);
+      }}
+      onSubmit={(ev) => {
+        upsertEvent(ev);
+        setDialogOpen(false);
+        setEditing(null);
+      }}
+    />
+  </React.Suspense>
 
-  <DetailDialog
-    open={detailOpen}
-    event={selected}
-    admin={admin}
-    onClose={() => setDetailOpen(false)}
-    onEdit={(ev) => {
-      setEditing(ev);
-      setDialogOpen(true);
-      setDetailOpen(false);
-    }}
-    onDelete={(ev) => setDeleting(ev)}
-    onImagePreview={(src) => setImagePreview(src)}
-  />
+  <React.Suspense fallback={null}>
+    <DetailDialog
+      open={detailOpen}
+      event={selected}
+      admin={admin}
+      onClose={() => setDetailOpen(false)}
+      onEdit={(ev) => {
+        setEditing(ev);
+        setDialogOpen(true);
+        setDetailOpen(false);
+      }}
+      onDelete={(ev) => setDeleting(ev)}
+      onImagePreview={(src) => setImagePreview(src)}
+    />
+  </React.Suspense>
 
-  <UsersDialog open={usersOpen} onClose={() => setUsersOpen(false)} />
+  <React.Suspense fallback={null}>
+    <UsersDialog open={usersOpen} onClose={() => setUsersOpen(false)} />
+  </React.Suspense>
 
   <Dialog open={unlockOpen} onClose={() => setUnlockOpen(false)}>
     <div className="p-6 grid gap-4">
@@ -697,6 +774,31 @@ export default function LifeTimelineApp() {
     </Dialog>
   </AnimatePresence>
 
+  {/* Fullscreen loading overlay while refreshing events */}
+  <AnimatePresence>
+    {showLoadingOverlay && (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 z-[100] grid place-items-center backdrop-blur-sm bg-white/60 dark:bg-black/40"
+      >
+        <motion.div
+          initial={{ scale: 0.96, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.98, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 220, damping: 20 }}
+          className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-black/10 bg-white/80 px-6 py-5 shadow-xl dark:border-white/10 dark:bg-neutral-900/70"
+        >
+          <Loader2 className="animate-spin text-indigo-500" size={28} />
+          <div className="text-sm font-medium">Обновляем события…</div>
+          <div className="text-xs opacity-60">Почти готово</div>
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+
       <AnimatePresence>
         <Dialog open={!!imagePreview} onClose={() => setImagePreview(null)}>
           {imagePreview && (
@@ -704,7 +806,7 @@ export default function LifeTimelineApp() {
               <img
                 src={imagePreview}
                 alt="Превью"
-                className="max-h-[85vh] w-auto max-w-[90vw] object-contain"
+                className="max-h-[80vh] w-auto max-w-[90vw] object-contain"
               />
             </div>
           )}

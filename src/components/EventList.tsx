@@ -14,6 +14,7 @@ interface Props {
   onDelete: (ev: EventItem) => void;
   onSelect: (ev: EventItem) => void;
   highlightId?: string | null;
+  loading?: boolean;
 }
 
 export default function EventList({
@@ -25,49 +26,63 @@ export default function EventList({
   onDelete,
   onSelect,
   highlightId,
+  loading = false,
 }: Props) {
-  function EventCard({
+  // Progressive reveal to reduce initial render cost on large lists
+  const [visibleCount, setVisibleCount] = React.useState(30);
+  useEffect(() => {
+    // Reset when the dataset changes notably
+    setVisibleCount(30);
+  }, [events.length, view]);
+  const EventCard = React.useMemo(() => function EventCard({
     ev,
     className = "",
+    isHighlighted = false,
   }: {
     ev: EventItem;
     className?: string;
+    isHighlighted?: boolean;
   }) {
     const isLegendary = Boolean(ev.code) || ev.tags?.includes("legendary");
     const accent = isLegendary ? ev.color || "#f5c542" : ev.color || "#8b5cf6";
-    const isHighlighted = highlightId === ev.id;
     const cardRef = useRef<HTMLButtonElement | null>(null);
+    const initialized = useRef(false);
 
     useEffect(() => {
-      if (!cardRef.current) return;
-      let destroyed = false;
+      const el = cardRef.current;
+      if (!el || initialized.current) return;
+      let cancelled = false;
 
-      (async () => {
-        try {
-          const mod = await import("vanilla-tilt");
-          const VanillaTilt = (mod as any).default || mod;
-          if (cardRef.current && !destroyed) {
-            VanillaTilt.init(cardRef.current, {
-              max: 5,
-              speed: 400,
-              glare: true,
-              "max-glare": 0.12,
-              scale: 1.03, // отключаем визуальное увеличение, чтобы не было масштабирования
-            });
-          }
-        } catch {
-          // ignore if module not available
-        }
-      })();
-
-      return () => {
-        destroyed = true;
-        if (cardRef.current && (cardRef.current as any).vanillaTilt) {
+      const observer = new IntersectionObserver(async (entries, obs) => {
+        const entry = entries[0];
+        if (entry && entry.isIntersecting && !initialized.current) {
           try {
-            (cardRef.current as any).vanillaTilt.destroy();
+            const mod = await import("vanilla-tilt");
+            if (cancelled) return;
+            const VanillaTilt = (mod as any).default || mod;
+            if (el) {
+              VanillaTilt.init(el, {
+                max: 5,
+                speed: 400,
+                glare: true,
+                "max-glare": 0.12,
+                scale: 1.03,
+              });
+              initialized.current = true;
+              obs.disconnect();
+            }
           } catch {
-            /* ignore */
+            // noop
           }
+        }
+      }, { threshold: 0.2 });
+
+      observer.observe(el);
+      return () => {
+        cancelled = true;
+        observer.disconnect();
+        if (el && (el as any).vanillaTilt) {
+          try { (el as any).vanillaTilt.destroy(); } catch {}
         }
       };
     }, []);
@@ -90,6 +105,8 @@ export default function EventList({
           className
         )}
         style={{
+          contentVisibility: "auto" as any,
+          containIntrinsicSize: "280px 180px",
           backgroundImage: `linear-gradient(180deg, ${accent}0f, transparent 55%)`,
             // небольшое золотое свечение для легендарных карточек (менее яркое)
             ...(isLegendary
@@ -173,7 +190,7 @@ export default function EventList({
         ) : null}
       </motion.button>
     );
-  }
+  }, [admin]);
 
   function MonthGrid() {
     const grouped: Record<number, EventItem[]> = {};
@@ -196,7 +213,9 @@ export default function EventList({
             </div>
             <div className="grid gap-2">
               {grouped[i].length ? (
-                grouped[i].map((ev) => <EventCard key={ev.id} ev={ev} />)
+                grouped[i].map((ev) => (
+                  <EventCard key={ev.id} ev={ev} isHighlighted={highlightId === ev.id} />
+                ))
               ) : (
                 <div className="text-sm text-neutral-600 dark:text-neutral-400">
                   Нет событий
@@ -217,11 +236,17 @@ export default function EventList({
           layout
           className="relative grid gap-5 sm:gap-6 md:grid-cols-2"
         >
-          {events.length ? (
-            events.map((ev, idx) => (
+          {loading ? (
+            // Skeletons handled outside to avoid importing here; fallback simple blocks
+            Array.from({ length: 8 }).map((_, idx) => (
+              <div key={idx} className="h-45 w-full rounded-3xl border border-black/10 bg-white/60 dark:border-white/10 dark:bg-white/5 animate-pulse" />
+            ))
+          ) : events.length ? (
+            events.slice(0, visibleCount).map((ev, idx) => (
               <EventCard
                 key={ev.id}
                 ev={ev}
+                isHighlighted={highlightId === ev.id}
                 className={cn(
                   idx % 2 === 1 && "md:-translate-y-2",
                   "transition-transform"
@@ -236,6 +261,13 @@ export default function EventList({
             >
               Ничего не найдено. Попробуй изменить фильтры или добавить событие.
             </motion.div>
+          )}
+          {!loading && view === "timeline" && events.length > visibleCount && (
+            <div className="col-span-full flex justify-center">
+              <Button variant="soft" onClick={() => setVisibleCount((n) => n + 20)}>
+                Показать ещё
+              </Button>
+            </div>
           )}
         </motion.div>
       ) : (

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { EventItem } from "../types";
 import { getMonth, getYear } from "../utils/helpers";
 
@@ -21,8 +21,12 @@ export function useEventFilters(events: EventItem[]) {
     return Array.from(ys).sort((a, b) => a - b);
   }, [events]);
 
+  // Defer query to avoid recomputing `filtered` on every keystroke
+  const deferredQuery = useDeferredValue(query);
+
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    // Defer heavy filtering while typing to keep UI responsive
+    const q = deferredQuery.trim().toLowerCase();
     return events
       .filter((e) => (year === "all" ? true : getYear(e.date) === year))
       .filter((e) => (month === "all" ? true : getMonth(e.date) === month))
@@ -41,7 +45,7 @@ export function useEventFilters(events: EventItem[]) {
               .some((s) => s!.toLowerCase().includes(q))
       )
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [events, query, year, month, activeTags]);
+  }, [events, deferredQuery, year, month, activeTags]);
 
   const currentYearIndex = year === "all" ? -1 : years.indexOf(year);
   function prevYear() {
