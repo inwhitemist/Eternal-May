@@ -8,6 +8,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import { z } from "zod";
+import rateLimit from "express-rate-limit";
 import { connectDB, User, Event, LegendaryUnlock } from "./db.js";
 
 const app = express();
@@ -15,6 +16,14 @@ const PORT = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET;
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:5173";
 const CLIENT_ORIGIN_PATH = process.env.CLIENT_ORIGIN_PATH || "";
+
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => res.status(429).json({ error: "too_many_requests" }),
+});
 
 if (!JWT_SECRET) throw new Error("JWT_SECRET is required");
 if (!process.env.MONGODB_URI) throw new Error("MONGODB_URI is required");
@@ -81,7 +90,7 @@ const legendaryEventsData = {
 
 app.get("/api/health", (_, res) => res.json({ ok: true }));
 
-app.post("/api/auth/register", async (req, res) => {
+app.post("/api/auth/register", authLimiter, async (req, res) => {
   try {
     const { email, password, invite } = registerSchema.parse(req.body);
     const exists = await User.findOne({ email }); if (exists) return res.status(409).json({ error: "email_taken" });
@@ -98,7 +107,7 @@ app.post("/api/auth/register", async (req, res) => {
   } catch (e) { return res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" }); }
 });
 
-app.post("/api/auth/login", async (req, res) => {
+app.post("/api/auth/login", authLimiter, async (req, res) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
     const user = await User.findOne({ email });
