@@ -1,9 +1,10 @@
-import React, { RefObject, useEffect, useRef } from "react";
+import React, { RefObject, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Calendar as CalendarIcon, Edit3, Trash2, Trophy } from "lucide-react";
 import { Button, cn } from "./ui";
 import { EventItem } from "../types";
 import { formatDateHuman, getMonth, MONTHS } from "../utils/helpers";
+import ElectricBorder from "./ElectricBorder";
 
 interface Props {
   events: EventItem[];
@@ -45,63 +46,19 @@ export default function EventList({
   }) {
     const isLegendary = Boolean(ev.code) || ev.tags?.includes("legendary");
     const accent = isLegendary ? ev.color || "#f5c542" : ev.color || "#8b5cf6";
-    const cardRef = useRef<HTMLButtonElement | null>(null);
-    const initialized = useRef(false);
+    // Tilt effect removed; using simple hover scale via classes
 
-    useEffect(() => {
-      const el = cardRef.current;
-      if (!el || initialized.current) return;
-      let cancelled = false;
-
-      const observer = new IntersectionObserver(async (entries, obs) => {
-        const entry = entries[0];
-        if (entry && entry.isIntersecting && !initialized.current) {
-          try {
-            const mod = await import("vanilla-tilt");
-            if (cancelled) return;
-            const VanillaTilt = (mod as any).default || mod;
-            if (el) {
-              VanillaTilt.init(el, {
-                max: 5,
-                speed: 400,
-                glare: true,
-                "max-glare": 0.12,
-                scale: 1.03,
-              });
-              initialized.current = true;
-              obs.disconnect();
-            }
-          } catch {
-            // noop
-          }
-        }
-      }, { threshold: 0.2 });
-
-      observer.observe(el);
-      return () => {
-        cancelled = true;
-        observer.disconnect();
-        if (el && (el as any).vanillaTilt) {
-          try { (el as any).vanillaTilt.destroy(); } catch {}
-        }
-      };
-    }, []);
-
-    return (
+    const card = (
       <motion.button
-        ref={cardRef}
-        layout
         data-timeline-card
         tabIndex={0}
         onClick={() => onSelect(ev)}
-        initial={{ y: 10, opacity: 0, scale: isHighlighted ? 0.8 : 1 }}
-        animate={{ y: 0, opacity: 1, scale: 1 }}
-        transition={isHighlighted ? { type: "spring", stiffness: 260, damping: 20 } : { duration: 0.2 }}
-        exit={{ y: -10, opacity: 0 }}
+        initial={false}
         className={cn(
-          "group relative flex h-45 w-full flex-col overflow-hidden text-left rounded-3xl border border-black/5 p-5 shadow-lg backdrop-blur transition hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300",
+          "group relative flex h-45 w-full flex-col overflow-hidden text-left rounded-3xl p-5 shadow-lg backdrop-blur transition hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300",
+          !isLegendary && "transform-gpu transition-transform duration-200 ease-out hover:scale-[1.02]",
           "bg-white/70 dark:bg-white/5",
-          isLegendary && "border-yellow-400",
+          !isLegendary && "border border-black/5",
           className
         )}
         style={{
@@ -119,10 +76,11 @@ export default function EventList({
           {/* highlight effect when newly unlocked */}
         {isHighlighted && (
           <motion.div
-            className="absolute inset-0 rounded-3xl pointer-events-none border-2 border-yellow-400"
+            className="absolute inset-0 rounded-3xl pointer-events-none"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            style={{ boxShadow: `0 0 0 0 transparent` }}
           />
         )}
         {/* neon glow layer — pointer-events-none, показывает подсветку по accent при hover */}
@@ -190,6 +148,21 @@ export default function EventList({
         ) : null}
       </motion.button>
     );
+
+    return isLegendary ? (
+      <ElectricBorder
+        color={accent}
+        thickness={2}
+        speed={1}
+        chaos={0.5}
+        style={{ borderRadius: 24, overflow: 'hidden', width: '100%' }}
+        className="block w-full rounded-3xl transform-gpu transition-transform duration-200 ease-out hover:scale-[1.02]"
+      >
+        {card}
+      </ElectricBorder>
+    ) : (
+      card
+    );
   }, [admin]);
 
   function MonthGrid() {
@@ -233,7 +206,6 @@ export default function EventList({
       {view === "timeline" ? (
         <motion.div
           ref={listRef}
-          layout
           className="relative grid gap-5 sm:gap-6 md:grid-cols-2"
         >
           {loading ? (

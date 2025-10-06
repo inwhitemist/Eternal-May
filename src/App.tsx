@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { isObjectId } from "./utils/isObjectId";
 import { api, MeUser } from "./api";
 import ParallaxBackground from "./components/ParallaxBackground";
+import SplashCursor from './components/SplashCursor'
 import {
   Upload,
   Sparkles,
@@ -39,6 +40,8 @@ import { formatDateHuman, uid, downloadFile, toICS } from "./utils/helpers";
    Вспомогательные утилиты
 ========================= */
 const THEME_KEY = "life-timeline-theme";
+const SPLASH_CURSOR_KEY = "life-timeline-splash-cursor";
+const EVENTS_CACHE_KEY = "life-timeline-events-cache";
 
 /* =========================
    Основное приложение
@@ -57,9 +60,30 @@ export default function LifeTimelineApp() {
     localStorage.setItem(THEME_KEY, dark ? "dark" : "light");
   }, [dark]);
 
+  // SplashCursor toggle
+  const [splashCursorEnabled, setSplashCursorEnabled] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const saved = localStorage.getItem(SPLASH_CURSOR_KEY);
+    return saved ? saved === "on" : true;
+  });
+  useEffect(() => {
+    localStorage.setItem(SPLASH_CURSOR_KEY, splashCursorEnabled ? "on" : "off");
+  }, [splashCursorEnabled]);
+
   // Данные теперь с сервера
-  const [events, setEvents] = useState<EventItem[]>([]);
+  const [events, setEvents] = useState<EventItem[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = localStorage.getItem(EVENTS_CACHE_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch {
+      return [];
+    }
+  });
   const [me, setMe] = useState<MeUser | null>(null);
+  const [meLoading, setMeLoading] = useState(true);
   const [loadingEvents, setLoadingEvents] = useState<boolean>(false);
   const logged = Boolean(me);
   const admin = me?.role === "admin";
@@ -70,13 +94,17 @@ export default function LifeTimelineApp() {
       setMe(r.user);
     } catch {
       setMe(null);
+    } finally {
+      setMeLoading(false);
     }
   }
   async function refreshEvents() {
     try {
       setLoadingEvents(true);
       const r = await api.getEvents();
-      setEvents(r.events || []);
+      const list = r.events || [];
+      setEvents(list);
+      try { localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify(list)); } catch {}
     } catch {
       setEvents([]);
     } finally {
@@ -89,12 +117,15 @@ export default function LifeTimelineApp() {
   }, []);
 
   useEffect(() => {
-    if (me) refreshEvents();
-    else {
+    if (meLoading) return;
+    if (me) {
+      refreshEvents();
+    } else {
       setEvents([]);
       setLoadingEvents(false);
+      try { localStorage.removeItem(EVENTS_CACHE_KEY); } catch {}
     }
-  }, [me]);
+  }, [me, meLoading]);
 
    const {
      query,
@@ -149,9 +180,9 @@ export default function LifeTimelineApp() {
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
   useEffect(() => {
     if (loadingEvents && logged) {
-      try { prevScrollRef.current = window.scrollY; } catch {}
+      //try { prevScrollRef.current = window.scrollY; } catch {}
       setShowLoadingOverlay(true);
-      try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch {}
+      //try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch {}
       try { document.body.style.overflow = "hidden"; } catch {}
     } else {
       try { document.body.style.overflow = ""; } catch {}
@@ -385,7 +416,9 @@ export default function LifeTimelineApp() {
 
       {/* Hero */}
       <header className="relative isolate min-h-[100svh] overflow-hidden">
+        
         <ParallaxBackground />
+        {splashCursorEnabled && <SplashCursor scoped zIndex={-15} />}
         {/*<AuroraLayer /> */}
         <div className="pointer-events-none absolute inset-0 -z-20 opacity-40 [background:radial-gradient(600px_200px_at_10%_-10%,#a78bfa,transparent_60%),radial-gradient(600px_200px_at_90%_-10%,#f472b6,transparent_60%)]" />
         <div className="absolute inset-x-0 top-0 z-20">
@@ -406,6 +439,13 @@ export default function LifeTimelineApp() {
                 </Button>
                 {settingsOpen && (
                   <div className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-2xl border border-black/10 bg-white/95 p-2 shadow-xl backdrop-blur dark:border-white/10 dark:bg-neutral-900/95">
+                    <button
+                      className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10"
+                      onClick={() => setSplashCursorEnabled((v) => !v)}
+                    >
+                      <span className="inline-flex items-center gap-2"><Sparkles size={16} /> Splash Cursor</span>
+                      <span className={splashCursorEnabled ? "h-2.5 w-2.5 rounded-full bg-emerald-500" : "h-2.5 w-2.5 rounded-full bg-neutral-400"} />
+                    </button>
                     <button
                       className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10"
                       onClick={() =>
@@ -529,15 +569,19 @@ export default function LifeTimelineApp() {
             Таймлайн важных событий моей жизни. Фильтры, поиск, теги и красивый
             просмотр деталей.
           </motion.p>
-          <div className="pointer-events-none absolute inset-x-0 bottom-6 z-10 flex items-center justify-center">
-            <Button
-              className="pointer-events-auto backdrop-blur"
-              variant="soft"
-              onClick={scrollToTimeline}
-            >
-              <ArrowDown size={16} /> Перейти к событиям
-            </Button>
-          </div>
+        
+            <div className="pointer-events-none absolute inset-x-0 bottom-6 z-10 flex items-center justify-center">
+              
+              <Button
+                className="pointer-events-auto backdrop-blur"
+                variant="soft"
+                onClick={scrollToTimeline}
+              >
+                <ArrowDown size={16} /> Перейти к событиям
+              </Button>
+              
+            </div>
+        
         </div>
       </header>
 
