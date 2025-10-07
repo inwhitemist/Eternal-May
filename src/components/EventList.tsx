@@ -1,10 +1,13 @@
-import React, { RefObject, useEffect } from "react";
+import React, { RefObject, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Calendar as CalendarIcon, Edit3, Trash2, Trophy } from "lucide-react";
 import { Button, cn } from "./ui";
 import { EventItem } from "../types";
 import { formatDateHuman, getMonth, MONTHS } from "../utils/helpers";
 import ElectricBorder from "./ElectricBorder";
+// tilt.js (jQuery plugin) for hover parallax tilt effect (not vanilla-tilt)
+import $ from "jquery";
+import "tilt.js";
 
 interface Props {
   events: EventItem[];
@@ -46,17 +49,42 @@ export default function EventList({
   }) {
     const isLegendary = Boolean(ev.code) || ev.tags?.includes("legendary");
     const accent = isLegendary ? ev.color || "#f5c542" : ev.color || "#8b5cf6";
-    // Tilt effect removed; using simple hover scale via classes
+
+    // Setup tilt.js on the card element
+    const cardRef = useRef<HTMLButtonElement | null>(null);
+    useEffect(() => {
+      if (!cardRef.current) return;
+      const $el = $(cardRef.current);
+      try {
+        // Configure tilt effect (replaces CSS hover scale)
+        ($el as any).tilt({
+          glare: true,
+          maxGlare: 0.15,
+          scale: 1.02,
+          perspective: 900,
+          speed: 500,
+          gyroscope: false,
+        });
+      } catch (_) {}
+      return () => {
+        try {
+          // Properly destroy on unmount to avoid leaks
+          ( ($el as any).tilt?.destroy || ( ($el as any).tilt && ( ($el as any).tilt.destroy ) ) )?.call($el);
+        } catch (_) {}
+      };
+    }, []);
 
     const card = (
       <motion.button
+        ref={cardRef}
         data-timeline-card
         tabIndex={0}
         onClick={() => onSelect(ev)}
         initial={false}
         className={cn(
           "group relative flex h-45 w-full flex-col overflow-hidden text-left rounded-3xl p-5 shadow-lg backdrop-blur transition hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300",
-          !isLegendary && "transform-gpu transition-transform duration-200 ease-out hover:scale-[1.02]",
+          // Remove manual hover scale; tilt.js handles transform/scale
+          !isLegendary && "transform-gpu backface-hidden",
           "bg-white/70 dark:bg-white/5",
           !isLegendary && "border border-black/5",
           className
@@ -155,8 +183,9 @@ export default function EventList({
         thickness={2}
         speed={1}
         chaos={0.5}
-        style={{ borderRadius: 24, overflow: 'hidden', width: '100%' }}
-        className="block w-full rounded-3xl transform-gpu transition-transform duration-200 ease-out hover:scale-[1.02]"
+        style={{ borderRadius: 24, width: '100%' }}
+        // No extra hover scale here; tilt.js scales the inner card
+        className="block w-full rounded-3xl overflow-visible transform-gpu"
       >
         {card}
       </ElectricBorder>
@@ -208,7 +237,7 @@ export default function EventList({
           ref={listRef}
           className="relative grid gap-5 sm:gap-6 md:grid-cols-2"
         >
-          {loading ? (
+          {loading && events.length === 0 ? (
             // Skeletons handled outside to avoid importing here; fallback simple blocks
             Array.from({ length: 8 }).map((_, idx) => (
               <div key={idx} className="h-45 w-full rounded-3xl border border-black/10 bg-white/60 dark:border-white/10 dark:bg-white/5 animate-pulse" />
@@ -219,10 +248,7 @@ export default function EventList({
                 key={ev.id}
                 ev={ev}
                 isHighlighted={highlightId === ev.id}
-                className={cn(
-                  idx % 2 === 1 && "md:-translate-y-2",
-                  "transition-transform"
-                )}
+                className={cn("transition-transform")}
               />
             ))
           ) : (
@@ -248,3 +274,4 @@ export default function EventList({
     </AnimatePresence>
   );
 }
+
