@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "./ui";
 
 const MONTHS_RU = [
@@ -128,24 +128,38 @@ export default function DatePicker({
             </button>
 
             <div className="flex items-center gap-2">
-              <select
-                className="rounded-lg border border-black/10 bg-white/80 px-2 py-1 text-sm dark:border-white/10 dark:bg-white/10"
-                value={viewMonth}
-                onChange={(e) => setViewMonth(Number(e.target.value))}
-              >
-                {MONTHS_RU.map((m, i) => (
-                  <option key={m} value={i}>{m}</option>
-                ))}
-              </select>
-              <select
-                className="rounded-lg border border-black/10 bg-white/80 px-2 py-1 text-sm dark:border-white/10 dark:bg-white/10"
-                value={viewYear}
-                onChange={(e) => setViewYear(Number(e.target.value))}
-              >
-                {years.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  className={cn(
+                    "appearance-none rounded-xl border border-black/10 bg-white px-3 py-2 pr-8 text-sm text-neutral-900 shadow-sm",
+                    "focus:outline-none focus:ring-2 focus:ring-indigo-400/60",
+                    "dark:border-white/10 dark:bg-neutral-900 dark:text-white"
+                  )}
+                  value={viewMonth}
+                  onChange={(e) => setViewMonth(Number(e.target.value))}
+                >
+                  {MONTHS_RU.map((m, i) => (
+                    <option key={m} value={i}>{m}</option>
+                  ))}
+                </select>
+                <ChevronDown size={16} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400" />
+              </div>
+              <div className="relative">
+                <select
+                  className={cn(
+                    "appearance-none rounded-xl border border-black/10 bg-white px-3 py-2 pr-8 text-sm text-neutral-900 shadow-sm",
+                    "focus:outline-none focus:ring-2 focus:ring-indigo-400/60",
+                    "dark:border-white/10 dark:bg-neutral-900 dark:text-white"
+                  )}
+                  value={viewYear}
+                  onChange={(e) => setViewYear(Number(e.target.value))}
+                >
+                  {years.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+                <ChevronDown size={16} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 dark:text-neutral-400" />
+              </div>
             </div>
 
             <button

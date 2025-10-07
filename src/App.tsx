@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { isObjectId } from "./utils/isObjectId";
 import { api, MeUser } from "./api";
 import ParallaxBackground from "./components/ParallaxBackground";
-import SplashCursor from './components/SplashCursor'
+import SplashCursor from './components/SplashCursor';
 import {
   Upload,
   Sparkles,
@@ -535,6 +535,7 @@ export default function LifeTimelineApp() {
               // мягкое фиолетово-розовое свечение + белый "bleed"
             }}
           >
+          
             <span className="relative z-10">Экскурсия в мой мир</span>
             {/* Слой свечения поверх текста */}
             <motion.span

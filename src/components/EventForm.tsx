@@ -3,6 +3,7 @@ import { Tag, Image as ImageIcon, X, Sparkles } from "lucide-react";
 import { Button, Chip, Input, Textarea, cn } from "./ui";
 import { EventItem } from "../types";
 import { uid } from "../utils/helpers";
+import DatePicker from "./DatePicker";
 
 interface Props {
   initial?: Partial<EventItem>;
@@ -118,12 +119,9 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
         )}
         <div className="grid gap-1">
           <label className="text-xs text-black/60 dark:text-white/60">Дата</label>
-          <Input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-          />
+          {/* Скрытый type=date для валидности формы */}
+          <input type="date" value={date} onChange={() => {}} required className="sr-only pointer-events-none opacity-0 absolute -z-10" tabIndex={-1} readOnly />
+          <DatePicker value={date} onChange={setDate} />
         </div>
         <div className="grid gap-1">
           <label className="text-xs text-black/60 dark:text-white/60">Заголовок</label>
