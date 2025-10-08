@@ -9,6 +9,15 @@ const API_BASE: string =
 
 export type MeUser = { id: string; email: string; role: "admin" | "user" };
 export type AdminUser = { id: string; email: string; role: string; codes: string[] };
+export type LegendaryCatalogItem = {
+  code: string;
+  title: string;
+  description: string;
+  tags?: string[];
+  color?: string | null;
+  date?: string | null;
+  source: "builtin" | "db";
+};
 
 const TOKEN_KEY = "auth-token";
 let authToken: string | null =
@@ -101,4 +110,6 @@ export const api = {
     http<{ ok: true }>(`/api/admin/users/${userId}/legendary/${code}`, {
       method: "DELETE",
     }),
+  getLegendaryCatalog: () =>
+    http<{ catalog: LegendaryCatalogItem[] }>("/api/admin/legendary-catalog"),
 };

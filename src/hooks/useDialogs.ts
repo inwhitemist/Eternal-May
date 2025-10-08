@@ -13,6 +13,7 @@ export function useDialogs() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [deleting, setDeleting] = useState<EventItem | null>(null);
   const [usersOpen, setUsersOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
 
   useEffect(() => {
     function onSwitch(e: any) {
@@ -44,6 +45,8 @@ export function useDialogs() {
     setSettingsOpen,
     usersOpen,
     setUsersOpen,
+    adminOpen,
+    setAdminOpen,
     deleting,
     setDeleting,
   };
