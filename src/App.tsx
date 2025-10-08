@@ -30,7 +30,7 @@ import EventList from "./components/EventList";
 const AuthDialog = React.lazy(() => import("./components/AuthDialog"));
 const AddDialog = React.lazy(() => import("./components/AddDialog"));
 const DetailDialog = React.lazy(() => import("./components/DetailDialog"));
-const UsersDialog = React.lazy(() => import("./components/UsersDialog"));
+const AdminDialog = React.lazy(() => import("./components/AdminDialog"));
 import { useEventFilters } from "./hooks/useEventFilters";
 import { useDialogs } from "./hooks/useDialogs";
 import { EventItem } from "./types";
@@ -166,6 +166,8 @@ export default function LifeTimelineApp() {
     setSettingsOpen,
     usersOpen,
     setUsersOpen,
+    adminOpen,
+    setAdminOpen,
     deleting,
     setDeleting,
   } = useDialogs();
@@ -475,10 +477,10 @@ export default function LifeTimelineApp() {
                           className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10"
                           onClick={() => {
                             setSettingsOpen(false);
-                            setUsersOpen(true);
+                            setAdminOpen(true);
                           }}
                         >
-                          <Users size={16} /> Пользователи
+                          <Users size={16} /> Админ-панель
                         </button>
                         <label className="flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10">
                           <Upload size={16} /> Импорт JSON
@@ -760,7 +762,7 @@ export default function LifeTimelineApp() {
   </React.Suspense>
 
   <React.Suspense fallback={null}>
-    <UsersDialog open={usersOpen} onClose={() => setUsersOpen(false)} />
+    <AdminDialog open={adminOpen} onClose={() => setAdminOpen(false)} />
   </React.Suspense>
 
   <Dialog open={unlockOpen} onClose={() => setUnlockOpen(false)}>

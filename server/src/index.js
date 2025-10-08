@@ -301,6 +301,42 @@ app.delete("/api/admin/users/:id/legendary/:code", auth, async (req, res) => {
     res.status(400).json({ error: "bad_request" });
   }
 });
+
+// ======= Админ: список доступных легендарных событий/кодов =======
+app.get("/api/admin/legendary-catalog", auth, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
+  try {
+    // Коды из встроенного справочника
+    const builtin = Object.entries(legendaryEventsData).map(([code, data]) => ({
+      code,
+      title: data.title || "",
+      description: data.description || "",
+      tags: Array.from(new Set([...(data.tags || []), "legendary"])),
+      color: data.color || null,
+      date: data.date || null,
+      source: "builtin",
+    }));
+    // Коды из БД (созданные события с прописанным code)
+    const dbEvents = await Event.find({ code: { $ne: null } }).select("code title description tags color date");
+    const db = dbEvents.map((e) => ({
+      code: e.code,
+      title: e.title || "",
+      description: e.description || "",
+      tags: Array.from(new Set([...(e.tags || []), "legendary"])),
+      color: e.color || null,
+      date: e.date || null,
+      source: "db",
+    }));
+    // Объединяем по коду, приоритет БД для отображения метаданных
+    const map = new Map();
+    for (const item of builtin) map.set(item.code, item);
+    for (const item of db) map.set(item.code, item);
+    const catalog = Array.from(map.values()).sort((a, b) => a.code.localeCompare(b.code));
+    res.json({ catalog });
+  } catch (e) {
+    res.status(400).json({ error: "bad_request" });
+  }
+});
 connectDB(process.env.MONGODB_URI).then(() => {
   app.listen(PORT, () => console.log(`API on :${PORT}`));
 }).catch(err => { console.error("DB connect error", err); process.exit(1); });
