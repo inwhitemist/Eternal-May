@@ -1,15 +1,13 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { isObjectId } from "./utils/isObjectId";
 import { api, MeUser } from "./api";
 import ParallaxBackground from "./components/ParallaxBackground";
-import SplashCursor from './components/SplashCursor';
+import FloatingLines from './components/FloatingLines';
 import {
   Upload,
   Sparkles,
-  SunMedium,
-  MoonStar,
   ChevronLeft,
   ChevronRight,
   Trash2,
@@ -40,15 +38,24 @@ import { formatDateHuman, uid, downloadFile, toICS } from "./utils/helpers";
    Вспомогательные утилиты
 ========================= */
 const THEME_KEY = "life-timeline-theme";
-const SPLASH_CURSOR_KEY = "life-timeline-splash-cursor";
 const EVENTS_CACHE_KEY = "life-timeline-events-cache";
+const LOADING_TIPS = [
+  "Собираем лепестки воспоминаний…",
+  "Подкрашиваем таймлайн и теги…",
+  "Синхронизируем события с сервером…",
+  "Проверяем секреты и легендарные моменты…",
+  "Настраиваем фильтры и поиск…",
+  "Вспоминаем всё на свете…",
+  "Считаем дни и минуты…",
+  "Апаем 10-й лвл… (KD 4/19)",
+];
 
 /* =========================
    Основное приложение
 ========================= */
 export default function LifeTimelineApp() {
   // Тема
-  const [dark, setDark] = useState<boolean>(() => {
+  const [dark] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     const saved = localStorage.getItem(THEME_KEY);
     return saved
@@ -59,16 +66,6 @@ export default function LifeTimelineApp() {
     document.documentElement.classList.toggle("dark", dark);
     localStorage.setItem(THEME_KEY, dark ? "dark" : "light");
   }, [dark]);
-
-  // SplashCursor toggle
-  const [splashCursorEnabled, setSplashCursorEnabled] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    const saved = localStorage.getItem(SPLASH_CURSOR_KEY);
-    return saved ? saved === "on" : true;
-  });
-  useEffect(() => {
-    localStorage.setItem(SPLASH_CURSOR_KEY, splashCursorEnabled ? "on" : "off");
-  }, [splashCursorEnabled]);
 
   // Данные теперь с сервера
   const [events, setEvents] = useState<EventItem[]>(() => {
@@ -177,9 +174,21 @@ export default function LifeTimelineApp() {
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const [unlockedEvent, setUnlockedEvent] = useState<EventItem | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+
+  const floatingLinesConfig = useMemo(
+    () => ({
+      enabledWaves: ["top", "middle", "bottom"] as Array<"top" | "middle" | "bottom">,
+      lineCount: [8, 8, 8],
+      lineDistance: [30, 30, 30]
+    }),
+    []
+  );
   // Loading overlay handling: scroll away, lock scroll, then restore
   const prevScrollRef = useRef(0);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
+  const [loadingTipIndex, setLoadingTipIndex] = useState(() =>
+    Math.floor(Math.random() * LOADING_TIPS.length)
+  );
   useEffect(() => {
     if (loadingEvents && logged) {
       //try { prevScrollRef.current = window.scrollY; } catch {}
@@ -193,6 +202,10 @@ export default function LifeTimelineApp() {
       return () => clearTimeout(t);
     }
   }, [loadingEvents, logged]);
+  useEffect(() => {
+    if (!showLoadingOverlay) return;
+    setLoadingTipIndex(Math.floor(Math.random() * LOADING_TIPS.length));
+  }, [showLoadingOverlay]);
 
   // Close image preview on Escape
   useEffect(() => {
@@ -372,6 +385,9 @@ export default function LifeTimelineApp() {
 }
 
 
+  const currentLoadingTip =
+    LOADING_TIPS[loadingTipIndex] ?? LOADING_TIPS[0];
+
   return (
     <div className="min-h-dvh bg-gradient-to-br from-indigo-50 via-white to-rose-50 text-neutral-900 transition dark:from-[#0B0B12] dark:via-[#0B0B12] dark:to-[#14121B] dark:text-white">
                   <style>{`
@@ -418,20 +434,28 @@ export default function LifeTimelineApp() {
 
       {/* Hero */}
       <header className="relative isolate min-h-[100svh] overflow-hidden">
-        
         <ParallaxBackground />
-        {splashCursorEnabled && <SplashCursor scoped zIndex={-15} />}
+        <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
+          <FloatingLines
+            enabledWaves={floatingLinesConfig.enabledWaves}
+            lineCount={floatingLinesConfig.lineCount}
+            lineDistance={floatingLinesConfig.lineDistance}
+            bendRadius={5}
+            bendStrength={-0.5}
+            animationSpeed={0.8}
+            parallax={true}
+            parallaxStrength={0.2}
+          />
+        </div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-32 bg-gradient-to-b from-transparent via-white/70 to-white dark:via-neutral-900/60 dark:to-neutral-950" />
         {/*<AuroraLayer /> */}
         <div className="pointer-events-none absolute inset-0 -z-20 opacity-40 [background:radial-gradient(600px_200px_at_10%_-10%,#a78bfa,transparent_60%),radial-gradient(600px_200px_at_90%_-10%,#f472b6,transparent_60%)]" />
         <div className="absolute inset-x-0 top-0 z-20">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
             <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs backdrop-blur dark:border-white/10 dark:bg-white/10 cursor-default">
-              <Sparkles size={14} /> Моя личная хроника
+              <Sparkles size={14} /> Eternal May
             </div>
             <div className="relative flex items-center gap-2">
-              <Button variant="soft" onClick={() => setDark((d) => !d)}>
-                {dark ? <SunMedium size={16} /> : <MoonStar size={16} />} Тема
-              </Button>
               <div className="relative">
                 <Button
                   variant="outline"
@@ -441,13 +465,6 @@ export default function LifeTimelineApp() {
                 </Button>
                 {settingsOpen && (
                   <div className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-2xl border border-black/10 bg-white/95 p-2 shadow-xl backdrop-blur dark:border-white/10 dark:bg-neutral-900/95">
-                    <button
-                      className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10"
-                      onClick={() => setSplashCursorEnabled((v) => !v)}
-                    >
-                      <span className="inline-flex items-center gap-2"><Sparkles size={16} /> Splash Cursor</span>
-                      <span className={splashCursorEnabled ? "h-2.5 w-2.5 rounded-full bg-emerald-500" : "h-2.5 w-2.5 rounded-full bg-neutral-400"} />
-                    </button>
                     <button
                       className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10"
                       onClick={() =>
@@ -589,10 +606,24 @@ export default function LifeTimelineApp() {
       </header>
 
       {/* Контент */}
+      {/* Контент */}
       <main
         ref={timelineAnchorRef}
-        className="mx-auto max-w-6xl mt-6 px-4 pb-24"
+        className="relative mx-auto max-w-6xl mt-6 px-4 pb-24"
       >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-20 overflow-hidden"
+        >
+          <div
+            className="absolute left-1/2 top-0 h-[160%] w-[200%] -translate-x-1/2 [background:radial-gradient(ellipse_at_20%_-10%,rgba(167,139,250,0.35),transparent_55%),radial-gradient(ellipse_at_80%_-5%,rgba(244,114,182,0.28),transparent_55%)] dark:[background:radial-gradient(ellipse_at_15%_-10%,rgba(124,115,255,0.25),transparent_60%),radial-gradient(ellipse_at_85%_-5%,rgba(236,72,153,0.25),transparent_60%)]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/95 via-white to-white dark:from-[#0b0b12]/95 dark:via-[#090910] dark:to-[#07070c]" />
+        </div>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-0 -z-10 h-32 w-[140%] -translate-x-1/2 -translate-y-1/2 bg-gradient-to-b from-transparent via-white/80 to-white dark:via-neutral-950/80 dark:to-neutral-950 sm:w-[160%]"
+        />
         {!logged ? (
           <div className="mx-auto max-w-2xl">
             <div className="rounded-3xl border border-black/10 bg-white/70 p-6 text-center shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
@@ -828,19 +859,62 @@ export default function LifeTimelineApp() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-[100] grid place-items-center backdrop-blur-sm bg-white/60 dark:bg-black/40"
+        transition={{ duration: 0.3 }}
+        className="fixed inset-0 z-[120] overflow-hidden bg-gradient-to-br from-white/70 via-white/80 to-rose-50/80 backdrop-blur-2xl dark:from-[#03030a]/95 dark:via-[#090512]/95 dark:to-[#140c1f]/95"
       >
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-24 top-10 h-64 w-64 rounded-full bg-indigo-200/60 blur-3xl dark:bg-indigo-700/30" />
+          <div className="absolute bottom-0 right-[-10%] h-72 w-72 rounded-full bg-rose-200/70 blur-3xl dark:bg-rose-700/30" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(167,139,250,0.25),transparent_55%),radial-gradient(circle_at_70%_20%,rgba(244,114,182,0.25),transparent_50%)] dark:bg-[radial-gradient(circle_at_30%_20%,rgba(124,115,255,0.2),transparent_60%),radial-gradient(circle_at_75%_15%,rgba(236,72,153,0.25),transparent_55%)]" />
+        </div>
         <motion.div
-          initial={{ scale: 0.96, opacity: 0 }}
+          initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.98, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 220, damping: 20 }}
-          className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-black/10 bg-white/80 px-6 py-5 shadow-xl dark:border-white/10 dark:bg-neutral-900/70"
+          exit={{ scale: 0.96, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 220, damping: 25 }}
+          className="relative z-10 mx-auto mt-20 flex w-[min(90vw,420px)] flex-col items-center gap-5 rounded-[28px] border border-white/60 bg-white/85 px-8 py-10 text-center shadow-2xl backdrop-blur-lg dark:border-white/10 dark:bg-neutral-900/85"
         >
-          <Loader2 className="animate-spin text-indigo-500" size={28} />
-          <div className="text-sm font-medium">Обновляем события…</div>
-          <div className="text-xs opacity-60">Почти готово</div>
+          <div className="text-[11px] uppercase tracking-[0.45em] text-indigo-500/80 dark:text-indigo-200/70">
+            Eternal May
+          </div>
+          <div className="relative h-20 w-20">
+            <motion.span
+              className="absolute inset-0 rounded-full border-2 border-indigo-300/50 dark:border-indigo-400/30"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+            />
+            <motion.span
+              className="absolute inset-3 rounded-full border-2 border-rose-300/60 dark:border-rose-300/30"
+              animate={{ rotate: -360 }}
+              transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+            />
+            <span className="absolute inset-6 rounded-full bg-gradient-to-br from-indigo-400/35 to-rose-400/35 blur-xl" />
+            <Loader2
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600 dark:text-rose-100"
+              size={30}
+            />
+          </div>
+          <div className="text-lg font-semibold text-neutral-900 dark:text-white">
+            Бережно раскладываем события
+          </div>
+          <motion.p
+            key={loadingTipIndex}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="text-sm text-neutral-700/80 dark:text-neutral-300/80"
+          >
+            {currentLoadingTip}
+          </motion.p>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-neutral-900/10 dark:bg-white/10">
+            <motion.span
+              key={`bar-${loadingTipIndex}`}
+              initial={{ width: "0%" }}
+              animate={{ width: "100%" }}
+              transition={{ duration: 2, ease: "easeInOut", repeat: Infinity }}
+              className="block h-full rounded-full bg-gradient-to-r from-indigo-400 via-violet-400 to-rose-400"
+            />
+          </div>
         </motion.div>
       </motion.div>
     )}
@@ -860,7 +934,7 @@ export default function LifeTimelineApp() {
         </Dialog>
       </AnimatePresence>
 
-      <footer className="mx-auto max-w-6xl px-4 pb-10 pt-6 text-xs flex flex-col items-center text-center opacity-30 cursor-default">
+      <footer className="mx-auto max-w-6xl px-4 pb-10 pt-6 text-xs flex flex-col items-center text-center opacity-20 cursor-default">
         <div>Не уходи безропотно во тьму,</div>
         <div>Будь яростней пред ночью всех ночей,</div>
         <div>Не дай погаснуть свету своему!</div>
