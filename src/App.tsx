@@ -19,7 +19,7 @@ import {
   FileDown,
   Trophy,
   AlertCircle,
-  Users,
+  Shield,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import { Button, Dialog, ConfirmDialog, Input } from "./components/ui";
@@ -28,7 +28,7 @@ import EventList from "./components/EventList";
 const AuthDialog = React.lazy(() => import("./components/AuthDialog"));
 const AddDialog = React.lazy(() => import("./components/AddDialog"));
 const DetailDialog = React.lazy(() => import("./components/DetailDialog"));
-const AdminDialog = React.lazy(() => import("./components/AdminDialog"));
+const AdminPage = React.lazy(() => import("./components/AdminPage"));
 import { useEventFilters } from "./hooks/useEventFilters";
 import { useDialogs } from "./hooks/useDialogs";
 import { EventItem } from "./types";
@@ -84,6 +84,7 @@ export default function LifeTimelineApp() {
   const [loadingEvents, setLoadingEvents] = useState<boolean>(false);
   const logged = Boolean(me);
   const admin = me?.role === "admin";
+  const meId = me?.id ?? null;
 
   async function refreshMe() {
     try {
@@ -142,10 +143,10 @@ export default function LifeTimelineApp() {
      nextYear,
    } = useEventFilters(events);
 
-   const {
-     dialogOpen,
-     setDialogOpen,
-     authOpen,
+  const {
+    dialogOpen,
+    setDialogOpen,
+    authOpen,
      setAuthOpen,
      authMode,
      setAuthMode,
@@ -161,13 +162,111 @@ export default function LifeTimelineApp() {
     setImagePreview,
     settingsOpen,
     setSettingsOpen,
-    usersOpen,
-    setUsersOpen,
-    adminOpen,
-    setAdminOpen,
     deleting,
     setDeleting,
   } = useDialogs();
+
+  const [adminProofStatus, setAdminProofStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [adminProofError, setAdminProofError] = useState<string | null>(null);
+  const proofRequestSeq = useRef(0);
+
+  const [route, setRoute] = useState<string>(() => {
+    if (typeof window === "undefined") return "#/";
+    return window.location.hash || "#/";
+  });
+
+  useEffect(() => {
+    function handleHash() {
+      if (typeof window === "undefined") return;
+      setRoute(window.location.hash || "#/");
+    }
+    window.addEventListener("hashchange", handleHash);
+    return () => window.removeEventListener("hashchange", handleHash);
+  }, []);
+
+  const navigateHash = React.useCallback(
+    (next: string) => {
+      if (!next.startsWith("#")) next = `#${next}`;
+      if (typeof window !== "undefined") {
+        if ((window.location.hash || "#/") !== next) {
+          window.location.hash = next;
+        }
+      }
+      setRoute(next);
+      setSettingsOpen(false);
+    },
+    [setSettingsOpen]
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const normalized = window.location.pathname.replace(/\/+$/, "") || "/";
+    if (!window.location.hash && normalized === "/admin") {
+      navigateHash("#/admin");
+    }
+  }, [navigateHash]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (route !== "#/admin") return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [route]);
+
+  const requestAdminProof = React.useCallback(async () => {
+    if (!admin || !meId) {
+      proofRequestSeq.current++;
+      api.clearAdminProof();
+      setAdminProofStatus("idle");
+      setAdminProofError(null);
+      return;
+    }
+    const seq = ++proofRequestSeq.current;
+    setAdminProofStatus("loading");
+    setAdminProofError(null);
+    try {
+      await api.obtainAdminProof(meId);
+      if (proofRequestSeq.current === seq) {
+        setAdminProofStatus("ready");
+        setAdminProofError(null);
+      }
+    } catch (e: any) {
+      if (proofRequestSeq.current === seq) {
+        setAdminProofStatus("error");
+        const msg = (() => {
+          switch (e?.message) {
+            case "admin_proof_invalid":
+              return "Сервер не подтвердил подпись. Попробуйте обновить страницу или войти заново.";
+            case "missing_admin_proof":
+            case "forbidden":
+              return "Похоже, доступ ограничен. Авторизуйтесь под админом.";
+            case "missing_user":
+              return "Нет данных о текущем пользователе. Попробуйте заново авторизоваться.";
+            default:
+              return e?.message || "Не удалось подтвердить админские права";
+          }
+        })();
+        setAdminProofError(msg);
+      }
+    }
+  }, [admin, meId]);
+
+  useEffect(() => {
+    if (!admin || !meId) {
+      proofRequestSeq.current++;
+      api.clearAdminProof();
+      setAdminProofStatus("idle");
+      setAdminProofError(null);
+      return;
+    }
+    if (adminProofStatus === "ready" || adminProofStatus === "loading") return;
+    requestAdminProof();
+  }, [admin, adminProofStatus, requestAdminProof]);
+
+  const adminAccessReady = admin && adminProofStatus === "ready";
 
   const [unlockOpen, setUnlockOpen] = useState(false);
   const [unlockCode, setUnlockCode] = useState("");
@@ -389,7 +488,8 @@ export default function LifeTimelineApp() {
     LOADING_TIPS[loadingTipIndex] ?? LOADING_TIPS[0];
 
   return (
-    <div className="min-h-dvh bg-gradient-to-br from-indigo-50 via-white to-rose-50 text-neutral-900 transition dark:from-[#0B0B12] dark:via-[#0B0B12] dark:to-[#14121B] dark:text-white">
+    <>
+      <div className="min-h-dvh bg-gradient-to-br from-indigo-50 via-white to-rose-50 text-neutral-900 transition dark:from-[#0B0B12] dark:via-[#0B0B12] dark:to-[#14121B] dark:text-white">
                   <style>{`
                     :root {
                       scrollbar-color: #a78bfa #f8fafc;
@@ -490,15 +590,6 @@ export default function LifeTimelineApp() {
                     </button>
                     {admin && (
                       <>
-                        <button
-                          className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10"
-                          onClick={() => {
-                            setSettingsOpen(false);
-                            setAdminOpen(true);
-                          }}
-                        >
-                          <Users size={16} /> Админ-панель
-                        </button>
                         <label className="flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10">
                           <Upload size={16} /> Импорт JSON
                           <input
@@ -523,6 +614,34 @@ export default function LifeTimelineApp() {
                   </div>
                 )}
               </div>
+              {admin && (
+                <div
+                  className="flex flex-col items-end gap-1"
+                  title={adminProofError || undefined}
+                >
+                  <Button
+                    variant="outline"
+                    disabled={adminProofStatus === "loading"}
+                    onClick={() => navigateHash("#/admin")}
+                  >
+                    {adminProofStatus === "loading" ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Shield size={16} />
+                    )}{" "}
+                    Админ
+                  </Button>
+                  {adminProofStatus === "error" && (
+                    <button
+                      type="button"
+                      className="text-[11px] text-rose-500 hover:underline"
+                      onClick={requestAdminProof}
+                    >
+                      Повторить проверку
+                    </button>
+                  )}
+                </div>
+              )}
               {!logged ? (
                 <Button variant="outline" onClick={handleLogin}>
                   <LogIn size={16} /> Войти
@@ -792,10 +911,6 @@ export default function LifeTimelineApp() {
     />
   </React.Suspense>
 
-  <React.Suspense fallback={null}>
-    <AdminDialog open={adminOpen} onClose={() => setAdminOpen(false)} />
-  </React.Suspense>
-
   <Dialog open={unlockOpen} onClose={() => setUnlockOpen(false)}>
     <div className="p-6 grid gap-4">
       <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -940,5 +1055,30 @@ export default function LifeTimelineApp() {
         <div>Не дай погаснуть свету своему!</div>
       </footer>
     </div>
+    {route === "#/admin" && (
+      <React.Suspense
+        fallback={
+          <div className="fixed inset-0 z-[40] flex items-center justify-center bg-neutral-950/80 text-white">
+            <div className="flex items-center gap-3 text-sm">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Загружаем админку…
+            </div>
+          </div>
+        }
+      >
+        <div className="fixed inset-0 z-[40] overflow-y-auto bg-gradient-to-b from-slate-50 to-white dark:from-neutral-950 dark:to-neutral-900">
+          <AdminPage
+            authorized={adminAccessReady}
+            isAdminUser={admin}
+            loadingProof={admin && adminProofStatus === "loading"}
+            proofError={adminProofError}
+            onExit={() => navigateHash("#/")}
+            onRequestLogin={handleLogin}
+            onRetryProof={requestAdminProof}
+          />
+        </div>
+      </React.Suspense>
+    )}
+    </>
   );
 }

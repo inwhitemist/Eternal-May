@@ -1,5 +1,6 @@
 import { EventItem } from "./types";
 import { isObjectId } from "./utils/isObjectId";
+import { verifyAdminProofToken } from "./lib/adminProof";
 
 const isLocalhost = typeof window !== "undefined" && window.location.hostname === "localhost";
 const API_BASE: string =
@@ -19,20 +20,30 @@ export type LegendaryCatalogItem = {
   source: "builtin" | "db";
 };
 
+type HttpOptions = RequestInit & { requireAdminProof?: boolean };
+
 const TOKEN_KEY = "auth-token";
 let authToken: string | null =
   typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+let adminProofToken: string | null = null;
 
-export async function http<T = any>(path: string, opts: RequestInit = {}): Promise<T> {
+export async function http<T = any>(path: string, opts: HttpOptions = {}): Promise<T> {
+  const { requireAdminProof, ...rest } = opts;
   const headers: Record<string, string> = {
-    ...(opts.headers ? (opts.headers as Record<string, string>) : {}),
+    ...(rest.headers ? (rest.headers as Record<string, string>) : {}),
   };
-  if (opts.body !== undefined) headers["Content-Type"] = "application/json";
+  if (rest.body !== undefined && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
   if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+  if (requireAdminProof) {
+    if (!adminProofToken) throw new Error("admin_proof_missing");
+    headers["X-Admin-Proof"] = adminProofToken;
+  } else if (adminProofToken && path.startsWith("/api/admin/")) {
+    headers["X-Admin-Proof"] = adminProofToken;
+  }
   const res = await fetch(API_BASE + path, {
     credentials: "include",
     headers,
-    ...opts,
+    ...rest,
   });
   if (!res.ok) {
     let msg = res.statusText;
@@ -57,6 +68,7 @@ export const api = {
       if (typeof window !== "undefined")
         localStorage.setItem(TOKEN_KEY, r.token);
     }
+    adminProofToken = null;
     return r;
   },
   logout: async () => {
@@ -64,6 +76,7 @@ export const api = {
     authToken = null;
     if (typeof window !== "undefined")
       localStorage.removeItem(TOKEN_KEY);
+    adminProofToken = null;
     return r;
   },
   register: async (email: string, password: string, invite?: string) => {
@@ -78,6 +91,7 @@ export const api = {
       if (typeof window !== "undefined")
         localStorage.setItem(TOKEN_KEY, r.token);
     }
+    adminProofToken = null;
     return r;
   },
   getEvents: () => http<{ events: EventItem[] }>("/api/events"),
@@ -85,31 +99,55 @@ export const api = {
     http<{ event: EventItem }>("/api/events", {
       method: "POST",
       body: JSON.stringify(e),
+      requireAdminProof: true,
     }),
   updateEvent: (id: string, e: EventItem) =>
     http<{ event: EventItem }>(`/api/events/${id}`, {
       method: "PUT",
       body: JSON.stringify(e),
+      requireAdminProof: true,
     }),
   deleteEvent: (id: string) => {
     if (!isObjectId(id)) throw new Error("invalid_id");
-    return http<{ ok: true }>(`/api/events/${id}`, { method: "DELETE" });
+    return http<{ ok: true }>(`/api/events/${id}`, {
+      method: "DELETE",
+      requireAdminProof: true,
+    });
   },
   unlockEvent: (code: string) =>
     http<{ event: EventItem }>("/api/events/unlock", {
       method: "POST",
       body: JSON.stringify({ code }),
     }),
-  getUsers: () => http<{ users: AdminUser[] }>("/api/admin/users"),
+  getUsers: () =>
+    http<{ users: AdminUser[] }>("/api/admin/users", { requireAdminProof: true }),
   grantLegendary: (userId: string, code: string) =>
     http<{ ok: true }>(`/api/admin/users/${userId}/legendary`, {
       method: "POST",
       body: JSON.stringify({ code }),
+      requireAdminProof: true,
     }),
   revokeLegendary: (userId: string, code: string) =>
     http<{ ok: true }>(`/api/admin/users/${userId}/legendary/${code}`, {
       method: "DELETE",
+      requireAdminProof: true,
     }),
   getLegendaryCatalog: () =>
-    http<{ catalog: LegendaryCatalogItem[] }>("/api/admin/legendary-catalog"),
+    http<{ catalog: LegendaryCatalogItem[] }>("/api/admin/legendary-catalog", {
+      requireAdminProof: true,
+    }),
+  obtainAdminProof: async (userId: string) => {
+    if (!userId) throw new Error("missing_user");
+    const r = await http<{ proof: string; expiresIn?: number }>("/api/admin/proof", {
+      method: "POST",
+    });
+    const payload = await verifyAdminProofToken(r.proof, userId);
+    if (!payload) throw new Error("admin_proof_invalid");
+    adminProofToken = r.proof;
+    return { proof: r.proof, expiresIn: r.expiresIn, payload };
+  },
+  clearAdminProof: () => {
+    adminProofToken = null;
+  },
+  hasAdminProof: () => Boolean(adminProofToken),
 };
