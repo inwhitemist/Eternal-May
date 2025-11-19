@@ -12,125 +12,48 @@ import {
   ChevronDown,
   Plus,
   Trash2,
-  LogIn as LogInIcon,
-  Loader2,
 } from "lucide-react";
 import { api, AdminUser, LegendaryCatalogItem } from "../api";
-import { Button, Input, ConfirmDialog, cn } from "./ui";
+import { Button, Dialog, Input, ConfirmDialog, cn } from "./ui";
 
 type TabKey = "users" | "legendary";
 
-type AdminPageProps = {
-  authorized: boolean;
-  isAdminUser: boolean;
-  loadingProof: boolean;
-  proofError?: string | null;
-  onExit: () => void;
-  onRequestLogin?: () => void;
-  onRetryProof?: () => void;
-};
-
-export default function AdminPage({
-  authorized,
-  isAdminUser,
-  loadingProof,
-  proofError,
-  onExit,
-  onRequestLogin,
-  onRetryProof,
-}: AdminPageProps) {
+export default function AdminDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [tab, setTab] = useState<TabKey>("users");
 
   useEffect(() => {
-    setTab("users");
-  }, [authorized]);
-
-  if (!authorized) {
-    const title = !isAdminUser
-      ? "Эта страница только для админов"
-      : loadingProof
-        ? "Подтверждаем права администратора…"
-        : proofError
-          ? "Не удалось подтвердить права"
-          : "Нет доступа";
-    const description = !isAdminUser
-      ? "Убедитесь, что вошли под админским аккаунтом. Если нужна помощь — свяжитесь с владельцем таймлайна."
-      : loadingProof
-        ? "Мы сверяем подписи и выдаём временный пропуск. Это займёт всего пару секунд."
-        : proofError || "Нужно повторно подтвердить админскую сессию.";
-
-    return (
-      <div className="min-h-[100svh] bg-gradient-to-b from-slate-100 to-white px-4 py-10 dark:from-neutral-950 dark:to-neutral-900">
-        <div className="mx-auto flex min-h-[80svh] max-w-3xl flex-col items-center justify-center gap-6 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-1 text-sm backdrop-blur dark:border-white/10 dark:bg-white/10">
-            {loadingProof ? <Loader2 size={16} className="animate-spin" /> : <Shield size={16} />} Доступ ограничен
-          </div>
-          <div className="space-y-3">
-            <h1 className="text-3xl font-bold">{title}</h1>
-            <p className="text-base text-black/70 dark:text-white/70">{description}</p>
-            {proofError && isAdminUser && !loadingProof && (
-              <p className="text-sm text-rose-500">{proofError}</p>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            {onRequestLogin && !isAdminUser && (
-              <Button onClick={onRequestLogin}>
-                <LogInIcon size={16} /> Войти
-              </Button>
-            )}
-            {isAdminUser && !loadingProof && onRetryProof && (
-              <Button variant="soft" onClick={onRetryProof}>
-                <RefreshCw size={16} /> Повторить проверку
-              </Button>
-            )}
-            <Button variant="outline" onClick={onExit}>
-              Вернуться к воспоминаниям
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    if (open) setTab("users");
+  }, [open]);
 
   return (
-    <div className="min-h-[100svh] bg-gradient-to-b from-slate-50 to-white px-4 py-10 dark:from-neutral-900 dark:to-neutral-950">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-medium uppercase tracking-wide text-black/70 backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-white/70">
-              <Shield size={14} /> Secure Area
-            </p>
-            <h1 className="mt-3 text-3xl font-bold">Админ-панель</h1>
-            <p className="text-black/60 dark:text-white/60">Управляйте пользователями, кодами и легендарными событиями.</p>
+    <Dialog open={open} onClose={onClose}>
+      <div className="p-0 flex max-h-[85vh] flex-col">
+        <div className="border-b px-4 pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Shield size={18} /> Админ-панель
+            </h3>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={onClose}>Закрыть</Button>
+            </div>
           </div>
-          <Button variant="outline" onClick={onExit}>
-            Вернуться к таймлайну
-          </Button>
+          {/* HeroUI-like tabs */}
+          <div className="relative">
+            <div className="flex gap-2 rounded-xl bg-black/5 p-1 dark:bg-white/10">
+              <TabButton active={tab === "users"} onClick={() => setTab("users")}>
+                <UsersIcon size={16} /> Пользователи
+              </TabButton>
+              <TabButton active={tab === "legendary"} onClick={() => setTab("legendary")}>
+                <Sparkles size={16} /> Легендарные события
+              </TabButton>
+            </div>
+          </div>
         </div>
-        <div className="rounded-3xl border border-black/5 bg-white/80 shadow-2xl shadow-purple-500/5 backdrop-blur dark:border-white/10 dark:bg-neutral-900/80">
-          <div className="border-b border-black/5 px-4 pb-4 pt-6 dark:border-white/10">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <UsersIcon size={18} /> Контрольная панель
-              </h3>
-            </div>
-            <div className="relative mt-4">
-              <div className="flex gap-2 rounded-xl bg-black/5 p-1 dark:bg-white/10">
-                <TabButton active={tab === "users"} onClick={() => setTab("users")}>
-                  <UsersIcon size={16} /> Пользователи
-                </TabButton>
-                <TabButton active={tab === "legendary"} onClick={() => setTab("legendary")}>
-                  <Sparkles size={16} /> Легендарные события
-                </TabButton>
-              </div>
-            </div>
-          </div>
-          <div className="p-4">
-            {tab === "users" ? <UsersPanel /> : <LegendaryPanel />}
-          </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          {tab === "users" ? <UsersPanel /> : <LegendaryPanel />}
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 
