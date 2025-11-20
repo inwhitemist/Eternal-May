@@ -1,10 +1,51 @@
-import React, { useEffect } from "react";
-import { motion } from "framer-motion";
+import React from "react";
+import {
+  Button as HeroButton,
+  Chip as HeroChip,
+  Input as HeroInput,
+  Textarea as HeroTextarea,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+} from "@heroui/react";
 import { Sparkles } from "lucide-react";
 
 export function cn(...classes: (string | boolean | undefined | null)[]) {
   return classes.filter(Boolean).join(" ");
 }
+
+type ButtonVariant = "primary" | "ghost" | "outline" | "soft";
+
+type ButtonProps = React.PropsWithChildren<{
+  className?: string;
+  onClick?: () => void;
+  variant?: ButtonVariant;
+  type?: "button" | "submit" | "reset";
+  disabled?: boolean;
+}>;
+
+const BUTTON_VARIANTS: Record<ButtonVariant, { variant?:
+  | "solid"
+  | "flat"
+  | "ghost"
+  | "light"
+  | "faded"
+  | "bordered"
+  | undefined; color?:
+  | "primary"
+  | "default"
+  | "secondary"
+  | "success"
+  | "warning"
+  | "danger"
+  | undefined; className?: string }> = {
+  primary: { variant: "solid", color: "primary" },
+  ghost: { variant: "light" },
+  outline: { variant: "bordered" },
+  soft: { variant: "flat" },
+};
 
 export function Button({
   className,
@@ -13,38 +54,18 @@ export function Button({
   variant = "primary",
   type = "button",
   disabled,
-}: React.PropsWithChildren<{
-  className?: string;
-  onClick?: () => void;
-  variant?: "primary" | "ghost" | "outline" | "soft";
-  type?: "button" | "submit" | "reset";
-  disabled?: boolean;
-}>) {
-  const base =
-    "inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium shadow-sm transition active:scale-[.98]";
-  const variants: Record<string, string> = {
-    primary:
-      "bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white hover:opacity-95",
-    ghost:
-      "bg-transparent hover:bg-white/10 text-foreground dark:text-white border border-transparent",
-    outline:
-      "border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10",
-    soft: "bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20",
-  };
+}: ButtonProps) {
+  const variantProps = BUTTON_VARIANTS[variant];
   return (
-    <button
+    <HeroButton
       type={type}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        base,
-        variants[variant],
-        disabled && "opacity-60 cursor-not-allowed",
-        className
-      )}
+      onPress={onClick}
+      isDisabled={disabled}
+      className={cn("font-medium", className, variantProps.className)}
+      {...variantProps}
     >
       {children}
-    </button>
+    </HeroButton>
   );
 }
 
@@ -58,42 +79,37 @@ export function Chip({
   onClick?: () => void;
 }) {
   return (
-    <button
+    <HeroChip
       onClick={onClick}
-      className={cn(
-        "px-3 py-1 rounded-full text-xs border transition",
-        selected
-          ? "bg-indigo-500/90 text-white border-transparent"
-          : "bg-white/70 dark:bg-white/5 backdrop-blur border-black/10 dark:border-white/10 hover:bg-white"
-      )}
+      variant={selected ? "solid" : "flat"}
+      color={selected ? "primary" : "default"}
+      className="cursor-pointer"
     >
       {label}
-    </button>
+    </HeroChip>
   );
 }
 
-export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
+export function Input(props: React.ComponentProps<typeof HeroInput>) {
+  const { className, ...rest } = props;
   return (
-    <input
-      {...props}
-      className={cn(
-        "w-full rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/5 px-3 py-2 text-sm outline-none",
-        "focus:ring-2 focus:ring-indigo-400/60",
-        props.className
-      )}
+    <HeroInput
+      variant="bordered"
+      radius="lg"
+      className={className}
+      {...rest}
     />
   );
 }
 
-export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function Textarea(props: React.ComponentProps<typeof HeroTextarea>) {
+  const { className, ...rest } = props;
   return (
-    <textarea
-      {...props}
-      className={cn(
-        "w-full rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/5 px-3 py-2 text-sm outline-none",
-        "focus:ring-2 focus:ring-indigo-400/60",
-        props.className
-      )}
+    <HeroTextarea
+      variant="bordered"
+      radius="lg"
+      className={className}
+      {...rest}
     />
   );
 }
@@ -103,31 +119,21 @@ export function Dialog({
   onClose,
   children,
 }: React.PropsWithChildren<{ open: boolean; onClose: () => void }>) {
-  useEffect(() => {
-    if (!open) return;
-    const original = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = original;
-    };
-  }, [open]);
-
-  if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center">
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 10, opacity: 0 }}
-        className="relative z-10 w-[92vw] max-w-2xl rounded-2xl border border-white/10 bg-white/95 shadow-2xl dark:bg-neutral-900/95"
-      >
-        <div className="flex max-h-[85vh] flex-col">{children}</div>
-      </motion.div>
-    </div>
+    <Modal
+      isOpen={open}
+      onOpenChange={onClose}
+      onClose={onClose}
+      backdrop="blur"
+      size="xl"
+      placement="center"
+      classNames={{ wrapper: "z-[60]" }}
+      scrollBehavior="inside"
+    >
+      <ModalContent className="max-h-[90vh]">
+        {() => <div className="flex max-h-[85vh] flex-col">{children}</div>}
+      </ModalContent>
+    </Modal>
   );
 }
 
@@ -148,24 +154,50 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  if (!open) return null;
   return (
-    <Dialog open={open} onClose={onCancel}>
-      <div className="p-4">
-        <h3 className="text-lg font-semibold">{title}</h3>
-        {description && (
-          <p className="mt-2 text-sm opacity-80 whitespace-pre-line">{description}</p>
+    <Modal
+      isOpen={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) onCancel();
+      }}
+      onClose={onCancel}
+      backdrop="blur"
+      placement="center"
+    >
+      <ModalContent>
+        {(close) => (
+          <>
+            <ModalHeader className="flex flex-col gap-1">{title}</ModalHeader>
+            {description && (
+              <ModalBody>
+                <p className="whitespace-pre-line text-sm opacity-80">
+                  {description}
+                </p>
+              </ModalBody>
+            )}
+            <ModalFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  close();
+                  onCancel();
+                }}
+              >
+                {cancelText}
+              </Button>
+              <Button
+                onClick={() => {
+                  onConfirm();
+                  close();
+                }}
+              >
+                <Sparkles size={16} /> {confirmText}
+              </Button>
+            </ModalFooter>
+          </>
         )}
-        <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" onClick={onCancel}>
-            {cancelText}
-          </Button>
-          <Button onClick={onConfirm}>
-            <Sparkles size={16} /> {confirmText}
-          </Button>
-        </div>
-      </div>
-    </Dialog>
+      </ModalContent>
+    </Modal>
   );
 }
 

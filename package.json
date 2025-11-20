@@ -12,6 +12,8 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "@heroui/react": "^2.8.5",
+    "@heroui/theme": "^2.4.23",
     "@tanstack/react-virtual": "^3.13.12",
     "@types/jquery": "^3.5.33",
     "class-variance-authority": "^0.7.1",
