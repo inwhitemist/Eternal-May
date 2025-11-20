@@ -29,6 +29,7 @@ const AuthDialog = React.lazy(() => import("./components/AuthDialog"));
 const AddDialog = React.lazy(() => import("./components/AddDialog"));
 const DetailDialog = React.lazy(() => import("./components/DetailDialog"));
 const AdminDialog = React.lazy(() => import("./components/AdminDialog"));
+import ShinyText from './components/ShinyText';
 import { useEventFilters } from "./hooks/useEventFilters";
 import { useDialogs } from "./hooks/useDialogs";
 import { EventItem } from "./types";
@@ -588,6 +589,7 @@ export default function LifeTimelineApp() {
           >
             Таймлайн важных событий моей жизни. Фильтры, поиск, теги и красивый
             просмотр деталей.
+            
           </motion.p>
         
             <div className="pointer-events-none absolute inset-x-0 bottom-6 z-10 flex items-center justify-center">
@@ -597,7 +599,12 @@ export default function LifeTimelineApp() {
                 variant="soft"
                 onClick={scrollToTimeline}
               >
-                <ArrowDown size={16} /> Перейти к событиям
+                                
+                <ArrowDown size={16} /> <ShinyText 
+                  text="Перейти к событиям" 
+                  disabled={false} 
+                  speed={3} 
+                />
               </Button>
               
             </div>
