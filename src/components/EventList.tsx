@@ -7,6 +7,7 @@ import { EventItem } from "../types";
 import { formatDateHuman, getMonth, MONTHS } from "../utils/helpers";
 import ElectricBorder from "./ElectricBorder";
 import VanillaTilt from "vanilla-tilt";
+import useDeviceProfile from "../hooks/useDeviceProfile";
 
 interface Props {
   events: EventItem[];
@@ -31,6 +32,9 @@ export default function EventList({
   highlightId,
   loading = false,
 }: Props) {
+  const { isIOS, isTouchDevice, prefersReducedMotion } = useDeviceProfile();
+  const reduceLegendaryMotion = isIOS || prefersReducedMotion;
+  const disableTilt = isTouchDevice || reduceLegendaryMotion;
   // Progressive reveal to reduce initial render cost on large lists
   const [visibleCount, setVisibleCount] = React.useState(30);
   useEffect(() => {
@@ -54,7 +58,7 @@ export default function EventList({
     // Initialize VanillaTilt on the card element instead of CSS hover scale
     const tiltRef = React.useRef<HTMLButtonElement>(null);
     useEffect(() => {
-      if (!tiltRef.current) return;
+      if (disableTilt || !tiltRef.current) return;
       const el = tiltRef.current as any;
       VanillaTilt.init(el, {
         max: 6,
@@ -72,7 +76,7 @@ export default function EventList({
           el?.vanillaTilt?.destroy?.();
         } catch {}
       };
-    }, []);
+    }, [disableTilt]);
 
     const card = (
       <motion.button
@@ -190,6 +194,7 @@ export default function EventList({
         thickness={2}
         speed={1}
         chaos={0.5}
+        reducedMotion={reduceLegendaryMotion}
         style={{ borderRadius: 24, width: '100%' }}
         className="block w-full rounded-3xl overflow-visible transform-gpu transition-transform duration-200 ease-out"
       >
@@ -198,7 +203,7 @@ export default function EventList({
     ) : (
       card
     );
-  }, [admin]);
+  }, [admin, disableTilt, reduceLegendaryMotion]);
 
   function MonthGrid() {
     const grouped: Record<number, EventItem[]> = {};
