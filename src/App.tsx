@@ -622,8 +622,12 @@ export default function LifeTimelineApp() {
         </div>
         <div
           aria-hidden
-          className="pointer-events-none absolute left-1/2 top-0 -z-10 h-32 w-[140%] -translate-x-1/2 -translate-y-1/2 bg-gradient-to-b from-transparent via-white/80 to-white dark:via-neutral-950/80 dark:to-neutral-950 sm:w-[160%]"
-        />
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-32 overflow-hidden"
+        >
+          <div
+            className="absolute left-1/2 top-0 h-32 w-[140%] -translate-x-1/2 -translate-y-1/2 bg-gradient-to-b from-transparent via-white/80 to-white dark:via-neutral-950/80 dark:to-neutral-950 sm:w-[160%]"
+          />
+        </div>
         {!logged ? (
           <div className="mx-auto max-w-2xl">
             <div className="rounded-3xl border border-black/10 bg-white/70 p-6 text-center shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
