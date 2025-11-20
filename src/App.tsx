@@ -30,6 +30,7 @@ const AddDialog = React.lazy(() => import("./components/AddDialog"));
 const DetailDialog = React.lazy(() => import("./components/DetailDialog"));
 const AdminDialog = React.lazy(() => import("./components/AdminDialog"));
 import ShinyText from './components/ShinyText';
+import ImagePreview from "./components/ImagePreview";
 import { useEventFilters } from "./hooks/useEventFilters";
 import { useDialogs } from "./hooks/useDialogs";
 import { EventItem } from "./types";
@@ -445,7 +446,7 @@ export default function LifeTimelineApp() {
             bendStrength={-0.5}
             animationSpeed={0.8}
             parallax={true}
-            parallaxStrength={0.2}
+            parallaxStrength={0.1}
           />
         </div>
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-32 bg-gradient-to-b from-transparent via-white/70 to-white dark:via-neutral-900/60 dark:to-neutral-950" />
@@ -931,19 +932,7 @@ export default function LifeTimelineApp() {
     )}
   </AnimatePresence>
 
-      <AnimatePresence>
-        <Dialog open={!!imagePreview} onClose={() => setImagePreview(null)}>
-          {imagePreview && (
-            <div className="flex items-center justify-center p-4">
-              <img
-                src={imagePreview}
-                alt="Превью"
-                className="max-h-[80vh] w-auto max-w-[90vw] object-contain"
-              />
-            </div>
-          )}
-        </Dialog>
-      </AnimatePresence>
+      <ImagePreview src={imagePreview} onClose={() => setImagePreview(null)} />
 
       <footer className="mx-auto max-w-6xl px-4 pb-10 pt-6 text-xs flex flex-col items-center text-center opacity-20 cursor-default">
         <div>Не уходи безропотно во тьму,</div>
