@@ -1,6 +1,6 @@
 import React, { RefObject, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Calendar as CalendarIcon, Edit3, Trash2, Trophy } from "lucide-react";
+import { Calendar as CalendarIcon, Edit3, Trash2, Trophy, Image as ImageIcon } from "lucide-react";
 import { Button, cn } from "./ui";
 import { SkeletonList } from "./Skeletons";
 import { EventItem } from "../types";
@@ -41,13 +41,16 @@ export default function EventList({
     ev,
     className = "",
     isHighlighted = false,
+    showImageHint = false,
   }: {
     ev: EventItem;
     className?: string;
     isHighlighted?: boolean;
+    showImageHint?: boolean;
   }) {
     const isLegendary = Boolean(ev.code) || ev.tags?.includes("legendary");
     const accent = isLegendary ? ev.color || "#f5c542" : ev.color || "#8b5cf6";
+    const hasImage = Boolean(ev.imageData);
     // Initialize VanillaTilt on the card element instead of CSS hover scale
     const tiltRef = React.useRef<HTMLButtonElement>(null);
     useEffect(() => {
@@ -142,10 +145,18 @@ export default function EventList({
             </div>
           )}
         </div>
-        <div className="pt-1 text-sm text-neutral-700 dark:text-neutral-300">
+        <div className="pt-1 text-sm text-neutral-700 dark:text-neutral-300 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10">
             <CalendarIcon size={14} /> {formatDateHuman(ev.date)}
           </span>
+          {showImageHint && hasImage && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-indigo-500/15 px-2 py-0.5 text-xs text-indigo-700 dark:text-indigo-200"
+              title="В событии есть изображение"
+            >
+              <ImageIcon size={14} /> Фото
+            </span>
+          )}
         </div>
         {ev.description && (
           <p className="pt-3 text-sm leading-relaxed text-neutral-800 dark:text-neutral-200 line-clamp-1 whitespace-pre-line">
@@ -245,6 +256,7 @@ export default function EventList({
                 ev={ev}
                 isHighlighted={highlightId === ev.id}
                 className={cn("transition-transform")}
+                showImageHint
               />
             ))
           ) : (
