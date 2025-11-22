@@ -86,7 +86,7 @@ export default function FiltersPanel({
               {allTags.map((t) => (
                 <Chip
                   key={t}
-                  label={t}
+                  label={t === "legendary" ? "легендарное" : t}
                   selected={activeTags.includes(t)}
                   onClick={() =>
                     setActiveTags((prev) =>
