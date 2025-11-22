@@ -51,10 +51,29 @@ const LegendaryUnlockSchema = new mongoose.Schema({
 
 LegendaryUnlockSchema.index({ userId: 1, code: 1 }, { unique: true });
 
+const ChatSchema = new mongoose.Schema({
+  chatId: { type: String, required: true, unique: true },
+  messageCount: { type: Number, default: 0 },
+}, { timestamps: true });
+
+const ChatMessageSchema = new mongoose.Schema({
+  chatId: { type: String, required: true, index: true },
+  id: { type: Number, required: true },
+  datetime: { type: String, required: true },
+  author: { type: String, required: true },
+  text: { type: String, default: "" },
+}, { timestamps: false });
+
+ChatMessageSchema.index({ chatId: 1, id: 1 }, { unique: true });
+
 applyToJSON(UserSchema);
 applyToJSON(EventSchema);
 applyToJSON(LegendaryUnlockSchema);
+applyToJSON(ChatSchema);
+applyToJSON(ChatMessageSchema);
 
 export const User = mongoose.model("User", UserSchema);
 export const Event = mongoose.model("Event", EventSchema);
 export const LegendaryUnlock = mongoose.model("LegendaryUnlock", LegendaryUnlockSchema);
+export const Chat = mongoose.model("Chat", ChatSchema);
+export const ChatMessage = mongoose.model("ChatMessage", ChatMessageSchema);

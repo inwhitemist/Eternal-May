@@ -2,7 +2,7 @@ import React from "react";
 import { Calendar as CalendarIcon, Edit3, Info, MessagesSquare, Trash2, X } from "lucide-react";
 import { Button, Dialog } from "./ui";
 import { ChatMessage, EventItem } from "../types";
-import { formatDateHuman } from "../utils/helpers";
+import { formatDateHuman, formatChatTimestamp } from "../utils/helpers";
 import { api } from "../api";
 
 const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -145,6 +145,8 @@ export default function DetailDialog({
                       chatMessages.map((m) => {
                         const imageUrls = extractImageUrls(m.text);
                         const textContent = stripImageUrls(m.text, imageUrls);
+                        const ATTACHMENT_PHRASE = "1 прикреплённое сообщение";
+                        const isStickerMessage = textContent === "Стикер";
                         return (
                           <div
                             key={m.id}
@@ -152,11 +154,26 @@ export default function DetailDialog({
                           >
                             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-black/60 dark:text-white/60">
                               <span className="font-semibold text-black dark:text-white">{m.author}</span>
-                              <span>{m.datetime}</span>
+                              <span>{formatChatTimestamp(m.datetime)}</span>
                             </div>
                             {textContent && (
-                              <p className="mt-1 whitespace-pre-line text-sm text-black/80 dark:text-white/80">
-                                {textContent}
+                              <p
+                                className={`mt-1 whitespace-pre-line text-sm ${
+                                  isStickerMessage ? "text-black/40 dark:text-white/40" : "text-black/80 dark:text-white/80"
+                                }`}
+                              >
+                                {textContent.includes(ATTACHMENT_PHRASE)
+                                  ? textContent.split(ATTACHMENT_PHRASE).map((chunk, idx, arr) => (
+                                      <React.Fragment key={`${m.id}-chunk-${idx}`}>
+                                        {chunk}
+                                        {idx < arr.length - 1 && (
+                                          <span className="text-black/40 dark:text-white/40">
+                                            {ATTACHMENT_PHRASE}
+                                          </span>
+                                        )}
+                                      </React.Fragment>
+                                    ))
+                                  : textContent}
                               </p>
                             )}
                             {imageUrls.length > 0 && (
@@ -164,7 +181,7 @@ export default function DetailDialog({
                                 {imageUrls.map((url, idx) => (
                                   <div
                                     key={`${m.id}-${idx}`}
-                                    className="overflow-hidden rounded-2xl border"
+                                    className="overflow-hidden rounded-2xl"
                                   >
                                     <img
                                       src={url}

@@ -11,6 +11,48 @@ export function formatDateHuman(iso: string) {
   });
 }
 
+function parseFlexibleDate(value?: string | null) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const cleaned = trimmed.replace(/\u00A0|\u202F/g, " ");
+  const direct = new Date(cleaned);
+  if (!Number.isNaN(direct.getTime())) return direct;
+  const match = cleaned.match(/(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{2,4})(?:\D+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if (match) {
+    let [, dd, mm, yyyy, hh = "0", mi = "0", ss = "0"] = match;
+    if (yyyy.length === 2) {
+      const two = Number(yyyy);
+      yyyy = (two < 70 ? "20" : "19") + yyyy;
+    }
+    const date = new Date(
+      Number(yyyy),
+      Number(mm) - 1,
+      Number(dd),
+      Number(hh),
+      Number(mi),
+      Number(ss)
+    );
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+  return null;
+}
+
+export function formatChatTimestamp(value?: string | null) {
+  const parsed = parseFlexibleDate(value);
+  if (!parsed) return value || "";
+  const datePart = parsed.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const timePart = parsed.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${datePart}, ${timePart}`;
+}
+
 export function getYear(iso: string) {
   return new Date(iso).getFullYear();
 }
