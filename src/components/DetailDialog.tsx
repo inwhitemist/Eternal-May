@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar as CalendarIcon, Edit3, Info, MessagesSquare, Trash2, X } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Edit3, Info, MessagesSquare, Trash2, X } from "lucide-react";
 import { Button, Dialog } from "./ui";
 import { ChatMessage, EventItem } from "../types";
 import { formatDateHuman, formatChatTimestamp } from "../utils/helpers";
@@ -75,6 +75,33 @@ export default function DetailDialog({
     return cleaned.replace(/ {2,}/g, " ").trim();
   }, []);
 
+  const bubblePalette = React.useMemo(
+    () => [
+      { tint: "rgba(99, 102, 241, 0.08)", border: "rgba(99, 102, 241, 0.25)", accent: "rgba(99, 102, 241, 0.4)" },   // indigo
+      { tint: "rgba(16, 185, 129, 0.08)", border: "rgba(16, 185, 129, 0.25)", accent: "rgba(16, 185, 129, 0.45)" },  // emerald
+      { tint: "rgba(14, 165, 233, 0.08)", border: "rgba(14, 165, 233, 0.25)", accent: "rgba(14, 165, 233, 0.4)" },  // sky
+      { tint: "rgba(249, 115, 22, 0.08)", border: "rgba(249, 115, 22, 0.25)", accent: "rgba(249, 115, 22, 0.4)" },  // orange
+      { tint: "rgba(244, 114, 182, 0.08)", border: "rgba(244, 114, 182, 0.25)", accent: "rgba(244, 114, 182, 0.4)" },// pink
+      { tint: "rgba(163, 230, 53, 0.08)", border: "rgba(163, 230, 53, 0.25)", accent: "rgba(163, 230, 53, 0.45)" },  // lime
+      { tint: "rgba(248, 113, 113, 0.08)", border: "rgba(248, 113, 113, 0.25)", accent: "rgba(248, 113, 113, 0.4)" },// rose
+      { tint: "rgba(59, 130, 246, 0.08)", border: "rgba(59, 130, 246, 0.25)", accent: "rgba(59, 130, 246, 0.4)" },  // blue
+    ],
+    []
+  );
+
+  const getBubbleTheme = React.useCallback(
+    (name: string) => {
+      if (!name) return bubblePalette[0];
+      let hash = 0;
+      for (let i = 0; i < name.length; i += 1) {
+        hash = (hash * 31 + name.charCodeAt(i)) | 0;
+      }
+      const idx = Math.abs(hash) % bubblePalette.length;
+      return bubblePalette[idx];
+    },
+    [bubblePalette]
+  );
+
   if (!open || !event) return null;
   return (
     <Dialog open={open} onClose={onClose}>
@@ -146,23 +173,30 @@ export default function DetailDialog({
                         const imageUrls = extractImageUrls(m.text);
                         const textContent = stripImageUrls(m.text, imageUrls);
                         const ATTACHMENT_PHRASE = "1 прикреплённое сообщение";
+                        const hasAttachmentPhrase = textContent.includes(ATTACHMENT_PHRASE);
                         const isStickerMessage = textContent === "Стикер";
+                        const bubbleClass = imageUrls.length
+                          ? "border-emerald-500/20 bg-gradient-to-br from-emerald-50/90 via-white/95 to-white dark:from-emerald-500/15 dark:via-white/5 dark:to-white/0"
+                          : "border-black/5 bg-white/95 dark:border-white/10 dark:bg-neutral-900/70";
                         return (
                           <div
                             key={m.id}
-                            className="rounded-2xl bg-white/80 p-3 text-sm shadow-sm dark:bg-white/5"
+                            className={`rounded-2xl border px-4 py-3 text-sm shadow-sm backdrop-blur-sm transition hover:shadow-md ${bubbleClass}`}
                           >
                             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-black/60 dark:text-white/60">
                               <span className="font-semibold text-black dark:text-white">{m.author}</span>
-                              <span>{formatChatTimestamp(m.datetime)}</span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-normal text-black/60 dark:bg-white/10 dark:text-white/70">
+                                <Clock size={12} className="opacity-70" />
+                                {formatChatTimestamp(m.datetime)}
+                              </span>
                             </div>
                             {textContent && (
                               <p
-                                className={`mt-1 whitespace-pre-line text-sm ${
-                                  isStickerMessage ? "text-black/40 dark:text-white/40" : "text-black/80 dark:text-white/80"
+                                className={`mt-2 whitespace-pre-line text-[15px] leading-relaxed ${
+                                  isStickerMessage ? "text-black/40 dark:text-white/40 italic" : "text-black/80 dark:text-white/80"
                                 }`}
                               >
-                                {textContent.includes(ATTACHMENT_PHRASE)
+                                {hasAttachmentPhrase
                                   ? textContent.split(ATTACHMENT_PHRASE).map((chunk, idx, arr) => (
                                       <React.Fragment key={`${m.id}-chunk-${idx}`}>
                                         {chunk}
@@ -177,20 +211,24 @@ export default function DetailDialog({
                               </p>
                             )}
                             {imageUrls.length > 0 && (
-                              <div className="mt-2 grid gap-2">
+                              <div className="mt-3 grid gap-3 sm:grid-cols-2">
                                 {imageUrls.map((url, idx) => (
-                                  <div
+                                  <button
+                                    type="button"
                                     key={`${m.id}-${idx}`}
-                                    className="overflow-hidden rounded-2xl"
+                                    className="group relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-black/5 shadow-inner transition hover:border-emerald-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+                                    onClick={() => onImagePreview(url)}
                                   >
                                     <img
                                       src={url}
                                       alt="Фото из переписки"
-                                      className="w-50 max-h-60 cursor-zoom-in rounded-xl object-cover"
+                                      className="h-44 w-full cursor-zoom-in object-cover transition duration-300 group-hover:scale-[1.03]"
                                       loading="lazy"
-                                      onClick={() => onImagePreview(url)}
                                     />
-                                  </div>
+                                    <span className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-xs text-white opacity-0 transition group-hover:opacity-100">
+                                      Открыть
+                                    </span>
+                                  </button>
                                 ))}
                               </div>
                             )}
