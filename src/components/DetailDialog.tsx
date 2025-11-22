@@ -176,7 +176,7 @@ export default function DetailDialog({
                         const hasAttachmentPhrase = textContent.includes(ATTACHMENT_PHRASE);
                         const isStickerMessage = textContent === "Стикер";
                         const bubbleClass = imageUrls.length
-                          ? "border-emerald-500/20 bg-gradient-to-br from-emerald-50/90 via-white/95 to-white dark:from-emerald-500/15 dark:via-white/5 dark:to-white/0"
+                          ? "border-black/5 bg-white/95 dark:border-white/10 dark:bg-neutral-900/70"
                           : "border-black/5 bg-white/95 dark:border-white/10 dark:bg-neutral-900/70";
                         return (
                           <div
