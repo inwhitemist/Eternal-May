@@ -12,11 +12,14 @@ import {
   ChevronDown,
   Plus,
   Trash2,
+  MessagesSquare,
+  FileJson,
 } from "lucide-react";
 import { api, AdminUser, LegendaryCatalogItem } from "../api";
+import { ChatMessage } from "../types";
 import { Button, Dialog, Input, ConfirmDialog, cn } from "./ui";
 
-type TabKey = "users" | "legendary";
+type TabKey = "users" | "legendary" | "chats";
 
 export default function AdminDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [tab, setTab] = useState<TabKey>("users");
@@ -40,17 +43,20 @@ export default function AdminDialog({ open, onClose }: { open: boolean; onClose:
           {/* HeroUI-like tabs */}
           <div className="relative">
             <div className="flex gap-2 rounded-xl bg-black/5 p-1 dark:bg-white/10">
-              <TabButton active={tab === "users"} onClick={() => setTab("users")}>
+              <TabButton active={tab === "users"} onClick={() => setTab("users")}> 
                 <UsersIcon size={16} /> Пользователи
               </TabButton>
-              <TabButton active={tab === "legendary"} onClick={() => setTab("legendary")}>
+              <TabButton active={tab === "legendary"} onClick={() => setTab("legendary")}> 
                 <Sparkles size={16} /> Легендарные события
+              </TabButton>
+              <TabButton active={tab === "chats"} onClick={() => setTab("chats")}> 
+                <MessagesSquare size={16} /> Переписки
               </TabButton>
             </div>
           </div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
-          {tab === "users" ? <UsersPanel /> : <LegendaryPanel />}
+          {tab === "users" ? <UsersPanel /> : tab === "legendary" ? <LegendaryPanel /> : <ChatUploadPanel />}
         </div>
       </div>
     </Dialog>
@@ -312,6 +318,101 @@ function UsersPanel() {
         onConfirm={() => confirmRemove && removeCode(confirmRemove.userId, confirmRemove.code)}
         onCancel={() => setConfirmRemove(null)}
       />
+    </div>
+  );
+}
+
+function ChatUploadPanel() {
+  const [chatId, setChatId] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  function parseMessages(text: string) {
+    try {
+      const parsed = JSON.parse(text);
+      if (!Array.isArray(parsed)) throw new Error("Файл должен содержать массив сообщений");
+      const normalized: ChatMessage[] = parsed.map((m) => ({
+        id: Number(m.id),
+        datetime: String(m.datetime || ""),
+        author: String(m.author || ""),
+        text: String(m.text || ""),
+      }));
+      setMessages(normalized);
+      setStatus(`Загружено сообщений: ${normalized.length}`);
+      setError(null);
+    } catch (e: any) {
+      setMessages([]);
+      setStatus(null);
+      setError(e?.message || "Не удалось разобрать JSON");
+    }
+  }
+
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      parseMessages(String(reader.result));
+      if (!chatId) {
+        const baseName = file.name.replace(/\.json$/i, "");
+        setChatId(baseName);
+      }
+    };
+    reader.readAsText(file, "utf-8");
+  }
+
+  async function upload() {
+    const id = chatId.trim();
+    if (!id) {
+      setError("Укажите ID чата");
+      return;
+    }
+    if (!messages.length) {
+      setError("Добавьте файл переписки");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setStatus(null);
+    try {
+      const resp = await api.uploadChatLog(id, messages);
+      setStatus(`Файл сохранён (${resp.messages} сообщений)`);
+    } catch (e: any) {
+      setError(e?.message || "Не удалось загрузить файл");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-4">
+      <div className="flex items-center gap-2 text-sm opacity-60">
+        <MessagesSquare size={16} /> Загрузка переписок (JSON)
+      </div>
+      <div className="grid gap-2">
+        <label className="text-xs text-black/60 dark:text-white/60">ID чата (имя файла без .json)</label>
+        <Input
+          value={chatId}
+          onChange={(e) => setChatId(e.target.value)}
+          placeholder="samir"
+        />
+      </div>
+      <div className="grid gap-2">
+        <label className="text-xs text-black/60 dark:text-white/60">Файл переписки (.json)</label>
+        <Input type="file" accept="application/json,.json" onChange={onFile} />
+        {fileName && <div className="text-xs text-black/60 dark:text-white/60">Выбран файл: {fileName}</div>}
+      </div>
+      {status && <div className="text-sm text-emerald-600 dark:text-emerald-300">{status}</div>}
+      {error && <div className="text-sm text-red-500">{error}</div>}
+      <div className="flex items-center gap-2">
+        <Button onClick={upload} disabled={loading}>
+          <FileJson size={16} /> {loading ? "Сохранение…" : "Сохранить переписку"}
+        </Button>
+      </div>
     </div>
   );
 }
