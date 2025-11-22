@@ -5,6 +5,8 @@ import { ChatMessage, EventItem } from "../types";
 import { formatDateHuman } from "../utils/helpers";
 import { api } from "../api";
 
+const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 interface Props {
   open: boolean;
   event: EventItem | null;
@@ -27,6 +29,7 @@ export default function DetailDialog({
   const [chatMessages, setChatMessages] = React.useState<ChatMessage[] | null>(null);
   const [chatError, setChatError] = React.useState<string | null>(null);
   const [chatLoading, setChatLoading] = React.useState(false);
+  const [chatVisible, setChatVisible] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -52,6 +55,25 @@ export default function DetailDialog({
       cancelled = true;
     };
   }, [event?.chatId, event?.chatFromId, event?.chatToId]);
+
+  React.useEffect(() => {
+    setChatVisible(Boolean(event?.chatId));
+  }, [event?.chatId]);
+
+  const extractImageUrls = React.useCallback((text: string) => {
+    const matches = text.match(/(https?:\/\/\S+\.(?:png|jpe?g|gif|webp)(?:\?\S*)?)/gi);
+    return matches ? matches.map((url) => url.trim()) : [];
+  }, []);
+
+  const stripImageUrls = React.useCallback((text: string, links: string[]) => {
+    if (!links.length) return text.trim();
+    let cleaned = text;
+    links.forEach((link) => {
+      const pattern = new RegExp(`(?:\\s*Фотография:?\\s*)?${escapeRegExp(link)}`, "gi");
+      cleaned = cleaned.replace(pattern, " ");
+    });
+    return cleaned.replace(/ {2,}/g, " ").trim();
+  }, []);
 
   if (!open || !event) return null;
   return (
@@ -96,45 +118,79 @@ export default function DetailDialog({
           </div>
         ) : null}
         {event.chatId && (
-          <div className="grid gap-2">
-            <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-200">
-              <MessagesSquare size={16} /> Переписка
-              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-200">
-                {event.chatId}.json
-              </span>
-              {(event.chatFromId || event.chatToId) && (
-                <span className="text-xs text-black/60 dark:text-white/60">
-                  {event.chatFromId ? `ID с ${event.chatFromId}` : ""}
-                  {event.chatFromId && event.chatToId ? " – " : ""}
-                  {event.chatToId ? `до ${event.chatToId}` : ""}
-                </span>
-              )}
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-200">
+                <MessagesSquare size={16} /> Переписка
+              </div>
+              <Button
+                variant="ghost"
+                className="px-3 py-1 text-xs"
+                onClick={() => setChatVisible((v) => !v)}
+              >
+                {chatVisible ? "Скрыть" : "Показать"}
+              </Button>
             </div>
-            {chatLoading && (
-              <div className="text-sm text-black/60 dark:text-white/60">Загрузка переписки…</div>
-            )}
-            {chatError && <div className="text-sm text-red-500">{chatError}</div>}
-            {!chatLoading && !chatError && (
-              <div className="grid gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
-                {chatMessages?.length ? (
-                  chatMessages.map((m) => (
-                    <div
-                      key={m.id}
-                      className="grid gap-1 rounded-lg bg-white/70 p-2 shadow-sm dark:bg-white/5"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-black/60 dark:text-white/60">
-                        <span className="font-semibold text-black/80 dark:text-white/80">{m.author}</span>
-                        <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] dark:bg-white/10">#{m.id}</span>
-                        <span>{m.datetime}</span>
-                      </div>
-                      <div className="text-sm whitespace-pre-line text-black/80 dark:text-white/80">{m.text}</div>
-                    </div>
-                  ))
-                ) : (
+            {chatVisible ? (
+              <div className="mt-3 grid gap-2">
+                {chatLoading && (
                   <div className="text-sm text-black/60 dark:text-white/60">
-                    Сообщений в указанном диапазоне нет
+                    Загрузка переписки…
                   </div>
                 )}
+                {chatError && <div className="text-sm text-red-500">{chatError}</div>}
+                {!chatLoading && !chatError && (
+                  <div className="flex flex-col gap-3">
+                    {chatMessages?.length ? (
+                      chatMessages.map((m) => {
+                        const imageUrls = extractImageUrls(m.text);
+                        const textContent = stripImageUrls(m.text, imageUrls);
+                        return (
+                          <div
+                            key={m.id}
+                            className="rounded-2xl bg-white/80 p-3 text-sm shadow-sm dark:bg-white/5"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-black/60 dark:text-white/60">
+                              <span className="font-semibold text-black dark:text-white">{m.author}</span>
+                              <span>{m.datetime}</span>
+                            </div>
+                            {textContent && (
+                              <p className="mt-1 whitespace-pre-line text-sm text-black/80 dark:text-white/80">
+                                {textContent}
+                              </p>
+                            )}
+                            {imageUrls.length > 0 && (
+                              <div className="mt-2 grid gap-2">
+                                {imageUrls.map((url, idx) => (
+                                  <div
+                                    key={`${m.id}-${idx}`}
+                                    className="overflow-hidden rounded-2xl border"
+                                  >
+                                    <img
+                                      src={url}
+                                      alt="Фото из переписки"
+                                      className="w-50 max-h-60 cursor-zoom-in rounded-xl object-cover"
+                                      loading="lazy"
+                                      onClick={() => onImagePreview(url)}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="text-sm text-black/60 dark:text-white/60">
+                        Сообщений в указанном диапазоне нет
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="mt-3 text-sm text-black/60 dark:text-white/60">
+                Переписка скрыта
               </div>
             )}
           </div>

@@ -33,7 +33,7 @@ if (!process.env.MONGODB_URI) throw new Error("MONGODB_URI is required");
 
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(morgan("dev"));
-app.use(express.json({ limit: "5mb" }));
+app.use(express.json({ limit: "30mb" }));
 app.use(cookieParser());
 
 app.use(cors({
