@@ -23,6 +23,10 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
   const [imageData, setImageData] = useState<string | undefined>(initial?.imageData);
   const [legendary, setLegendary] = useState(Boolean(initial?.code));
   const [code, setCode] = useState(initial?.code || "");
+  const [chatId, setChatId] = useState(initial?.chatId || "");
+  const [chatFromId, setChatFromId] = useState(initial?.chatRange?.fromId || "");
+  const [chatToId, setChatToId] = useState(initial?.chatRange?.toId || "");
+  const [chatIdsList, setChatIdsList] = useState((initial?.chatMessageIds || []).join(", "));
 
   React.useEffect(() => {
     if (legendary) {
@@ -82,7 +86,22 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
           color: color || undefined,
           imageData,
           ...(legendary ? { code: code.trim().toUpperCase() } : {}),
+          ...(chatId.trim()
+            ? {
+                chatId: chatId.trim(),
+                ...(chatIdsList.trim()
+                  ? { chatMessageIds: chatIdsList.split(/[,\n]/).map((id) => id.trim()).filter(Boolean) }
+                  : {}),
+                ...((chatFromId.trim() || chatToId.trim())
+                  ? { chatRange: { fromId: chatFromId.trim() || undefined, toId: chatToId.trim() || undefined } }
+                  : {}),
+              }
+            : {}),
         };
+        if (!ev.chatId && ((chatFromId && chatFromId.trim()) || (chatToId && chatToId.trim()) || chatIdsList.trim())) {
+          alert("Укажите chatId для связанных сообщений");
+          return;
+        }
         onSubmit(ev);
       }}
       className="flex min-h-0 flex-1 flex-col"
@@ -139,6 +158,46 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Короткая история/заметки"
           />
+        </div>
+        <div className="grid gap-2 rounded-2xl border border-dashed border-indigo-200/70 p-3 dark:border-indigo-500/40">
+          <div className="text-sm font-semibold text-indigo-700 dark:text-indigo-200 flex items-center gap-2">
+            <Tag size={16} /> Переписка (опционально)
+          </div>
+          <div className="grid gap-1">
+            <label className="text-xs text-black/60 dark:text-white/60">chatId</label>
+            <Input
+              value={chatId}
+              onChange={(e) => setChatId(e.target.value)}
+              placeholder="например: friend"
+            />
+          </div>
+          <div className="grid gap-1 sm:grid-cols-2 sm:gap-3">
+            <div className="grid gap-1">
+              <label className="text-xs text-black/60 dark:text-white/60">Сообщение от (ID)</label>
+              <Input
+                value={chatFromId}
+                onChange={(e) => setChatFromId(e.target.value)}
+                placeholder="опционально"
+              />
+            </div>
+            <div className="grid gap-1">
+              <label className="text-xs text-black/60 dark:text-white/60">Сообщение до (ID)</label>
+              <Input
+                value={chatToId}
+                onChange={(e) => setChatToId(e.target.value)}
+                placeholder="опционально"
+              />
+            </div>
+          </div>
+          <div className="grid gap-1">
+            <label className="text-xs text-black/60 dark:text-white/60">Точные ID сообщений (через запятую)</label>
+            <Textarea
+              rows={2}
+              value={chatIdsList}
+              onChange={(e) => setChatIdsList(e.target.value)}
+              placeholder="12345, 12346"
+            />
+          </div>
         </div>
         <div className="grid gap-1">
           <label className="text-xs text-black/60 dark:text-white/60">Теги</label>

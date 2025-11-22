@@ -1,4 +1,4 @@
-import { EventItem } from "./types";
+import { ChatMessage, EventItem } from "./types";
 import { isObjectId } from "./utils/isObjectId";
 
 const isLocalhost = typeof window !== "undefined" && window.location.hostname === "localhost";
@@ -17,6 +17,14 @@ export type LegendaryCatalogItem = {
   color?: string | null;
   date?: string | null;
   source: "builtin" | "db";
+};
+
+export type ChatSliceParams = {
+  fromId?: string;
+  toId?: string;
+  fromDate?: string;
+  toDate?: string;
+  limit?: number;
 };
 
 const TOKEN_KEY = "auth-token";
@@ -42,6 +50,7 @@ export async function http<T = any>(path: string, opts: RequestInit = {}): Promi
     } catch {}
     throw new Error(msg || "request_failed");
   }
+  if (res.status === 204) return {} as T;
   return (await res.json()) as T;
 }
 
@@ -112,4 +121,16 @@ export const api = {
     }),
   getLegendaryCatalog: () =>
     http<{ catalog: LegendaryCatalogItem[] }>("/api/admin/legendary-catalog"),
+  fetchChatSlice: (chatId: string, params: ChatSliceParams = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        query.set(key, String(value));
+      }
+    });
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    return http<{ chatId: string; messages: ChatMessage[] }>(`/api/chats/${chatId}${suffix}`);
+  },
+  fetchChatMessage: (chatId: string, messageId: string) =>
+    http<{ chatId: string; message: ChatMessage }>(`/api/chats/${chatId}/messages/${messageId}`),
 };

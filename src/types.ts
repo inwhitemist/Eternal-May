@@ -8,4 +8,16 @@ export type EventItem = {
   emoji?: string; // устар.
   imageData?: string;
   code?: string | null;
+  chatId?: string | null;
+  chatMessageIds?: string[];
+  chatRange?: { fromId?: string; toId?: string };
+};
+
+export type ChatMessage = {
+  chatId: string;
+  messageId: string;
+  author: string;
+  sentAt: string;
+  content?: string;
+  sourceFile?: string;
 };

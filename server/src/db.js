@@ -34,6 +34,12 @@ const EventSchema = new mongoose.Schema({
   color: { type: String },
   imageData: { type: String },
   code: { type: String, default: null },
+  chatId: { type: String, default: null },
+  chatMessageIds: { type: [String], default: [] },
+  chatRange: {
+    fromId: { type: String },
+    toId: { type: String },
+  },
 }, { timestamps: true });
 
 EventSchema.index(

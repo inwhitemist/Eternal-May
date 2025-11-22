@@ -9,7 +9,8 @@
     "export": "next export",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "import:chat": "npm --prefix server run import:chat --"
   },
   "dependencies": {
     "@tanstack/react-virtual": "^3.13.12",

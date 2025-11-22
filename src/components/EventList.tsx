@@ -1,6 +1,6 @@
 import React, { RefObject, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Calendar as CalendarIcon, Edit3, Trash2, Trophy, Image as ImageIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Edit3, Trash2, Trophy, Image as ImageIcon, MessageSquare } from "lucide-react";
 import { Button, cn } from "./ui";
 import { SkeletonList } from "./Skeletons";
 import { EventItem } from "../types";
@@ -153,6 +153,11 @@ export default function EventList({
           <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10">
             <CalendarIcon size={14} /> {formatDateHuman(ev.date)}
           </span>
+          {ev.chatId && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-200">
+              <MessageSquare size={14} /> Есть переписка
+            </span>
+          )}
           {showImageHint && hasImage && (
             <span
               className="inline-flex items-center gap-1 rounded-full bg-indigo-500/15 px-2 py-0.5 text-xs text-indigo-700 dark:text-indigo-200"

@@ -1,8 +1,9 @@
 import React from "react";
-import { Calendar as CalendarIcon, Edit3, Info, Trash2, X } from "lucide-react";
+import { Calendar as CalendarIcon, Edit3, Info, MessageSquare, Trash2, X } from "lucide-react";
 import { Button, Dialog } from "./ui";
 import { EventItem } from "../types";
 import { formatDateHuman } from "../utils/helpers";
+import ChatThread from "./ChatThread";
 
 interface Props {
   open: boolean;
@@ -23,6 +24,19 @@ export default function DetailDialog({
   onDelete,
   onImagePreview,
 }: Props) {
+  const [showChat, setShowChat] = React.useState(false);
+
+  const chatParams = React.useMemo(() => {
+    if (!event?.chatId) return undefined;
+    const fromId = event.chatRange?.fromId || event.chatMessageIds?.[0];
+    const toId = event.chatRange?.toId || (event.chatMessageIds?.length ? event.chatMessageIds[event.chatMessageIds.length - 1] : undefined);
+    return { fromId, toId, limit: 200 };
+  }, [event]);
+
+  React.useEffect(() => {
+    setShowChat(false);
+  }, [event?.id]);
+
   if (!open || !event) return null;
   return (
     <Dialog open={open} onClose={onClose}>
@@ -65,6 +79,14 @@ export default function DetailDialog({
             ))}
           </div>
         ) : null}
+        {event.chatId && (
+          <div className="flex flex-col gap-2">
+            <Button variant="soft" onClick={() => setShowChat((v) => !v)}>
+              <MessageSquare size={16} /> {showChat ? "Скрыть переписку" : "Показать переписку"}
+            </Button>
+            {showChat && <ChatThread chatId={event.chatId} params={chatParams} />}
+          </div>
+        )}
         {admin && (
           <div className="mt-2 flex items-center justify-end gap-2">
             <Button

@@ -11,6 +11,18 @@ export function formatDateHuman(iso: string) {
   });
 }
 
+export function formatDateTimeHuman(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 export function getYear(iso: string) {
   return new Date(iso).getFullYear();
 }

@@ -7,15 +7,18 @@ import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
+import path from "node:path";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import { connectDB, User, Event, LegendaryUnlock } from "./db.js";
+import { ChatRepository } from "./chatRepository.js";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET;
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:5173";
 const CLIENT_ORIGIN_PATH = process.env.CLIENT_ORIGIN_PATH || "";
+const chatRepo = new ChatRepository(path.resolve("data/chats"));
 
 const authLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -79,6 +82,9 @@ const eventSchema = z.object({
   color: z.string().optional(),
   imageData: z.string().optional(),
   code: z.string().optional(),
+  chatId: z.string().optional().nullable(),
+  chatMessageIds: z.array(z.string()).optional().default([]),
+  chatRange: z.object({ fromId: z.string().optional(), toId: z.string().optional() }).partial().optional(),
 });
 
 const legendaryEventsData = {
@@ -141,14 +147,25 @@ app.post("/api/events", auth, async (req, res) => {
   if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
   try {
     let data = eventSchema.parse(req.body);
-    let { id, code, tags = [], ...rest } = data;          // <-- выбрасываем client-side id
+    let { id, code, tags = [], chatId, chatMessageIds = [], chatRange, ...rest } = data;          // <-- выбрасываем client-side id
+    if ((chatMessageIds?.length || chatRange?.fromId || chatRange?.toId) && !chatId) {
+      return res.status(400).json({ error: "chat_id_required" });
+    }
     code = code ? code.trim().toUpperCase() : undefined;
     if (code && !tags.includes("legendary")) tags.push("legendary");
     if (code) {
       const exists = await Event.findOne({ code });
       if (exists) return res.status(409).json({ error: "duplicate_code" });
     }
-    const ev = await Event.create({ ...rest, tags, code: code || null, userId: req.user.uid });
+    const ev = await Event.create({
+      ...rest,
+      tags,
+      code: code || null,
+      chatId: chatId || null,
+      chatMessageIds,
+      chatRange: chatRange || {},
+      userId: req.user.uid
+    });
     if (code) {
       await LegendaryUnlock.create({ userId: req.user.uid, code });
     }
@@ -190,6 +207,22 @@ app.post("/api/events/unlock", auth, async (req, res) => {
   }
 });
 
+app.get("/api/chats/:chatId", auth, async (req, res) => {
+  const { chatId } = req.params;
+  const { fromId, toId, fromDate, toDate, limit } = req.query;
+  const data = await chatRepo.getSlice(chatId, { fromId, toId, fromDate, toDate, limit });
+  if (data === null) return res.status(404).json({ error: "chat_not_found" });
+  if (!data.length) return res.status(204).send();
+  res.json({ chatId, messages: data });
+});
+
+app.get("/api/chats/:chatId/messages/:messageId", auth, async (req, res) => {
+  const { chatId, messageId } = req.params;
+  const message = await chatRepo.getMessage(chatId, messageId);
+  if (!message) return res.status(404).json({ error: "chat_not_found" });
+  res.json({ chatId, message });
+});
+
 app.put("/api/events/:id", auth, async (req, res) => {
   if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
   try {
@@ -198,7 +231,10 @@ app.put("/api/events/:id", auth, async (req, res) => {
       return res.status(400).json({ error: "invalid_id" });
     }
     let data = eventSchema.parse(req.body);
-    let { id: _clientId, code, tags = [], ...rest } = data;   // <-- игнорируем client-side id
+    let { id: _clientId, code, tags = [], chatId, chatMessageIds = [], chatRange, ...rest } = data;   // <-- игнорируем client-side id
+    if ((chatMessageIds?.length || chatRange?.fromId || chatRange?.toId) && !chatId) {
+      return res.status(400).json({ error: "chat_id_required" });
+    }
     code = code ? code.trim().toUpperCase() : undefined;
     if (code && !tags.includes("legendary")) tags.push("legendary");
     if (code) {
@@ -207,7 +243,13 @@ app.put("/api/events/:id", auth, async (req, res) => {
     }
     const ev = await Event.findById(id);
     if (!ev) return res.status(404).json({ error: "not_found" });
-    Object.assign(ev, rest, { tags, code: code || null });
+    Object.assign(ev, rest, {
+      tags,
+      code: code || null,
+      chatId: chatId || null,
+      chatMessageIds,
+      chatRange: chatRange || {},
+    });
     await ev.save();
     if (code) {
       await LegendaryUnlock.updateOne(
