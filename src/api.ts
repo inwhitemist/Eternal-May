@@ -1,4 +1,4 @@
-import { EventItem } from "./types";
+import { ChatMessage, EventItem } from "./types";
 import { isObjectId } from "./utils/isObjectId";
 
 const isLocalhost = typeof window !== "undefined" && window.location.hostname === "localhost";
@@ -112,4 +112,16 @@ export const api = {
     }),
   getLegendaryCatalog: () =>
     http<{ catalog: LegendaryCatalogItem[] }>("/api/admin/legendary-catalog"),
+  getChatMessages: (chatId: string, fromId?: number | null, toId?: number | null) => {
+    const params = new URLSearchParams();
+    if (fromId !== undefined && fromId !== null) params.set("fromId", String(fromId));
+    if (toId !== undefined && toId !== null) params.set("toId", String(toId));
+    const query = params.toString();
+    return http<{ messages: ChatMessage[] }>(`/api/chats/${chatId}${query ? `?${query}` : ""}`);
+  },
+  uploadChatLog: (chatId: string, messages: ChatMessage[]) =>
+    http<{ ok: boolean; messages: number }>("/api/admin/chats", {
+      method: "POST",
+      body: JSON.stringify({ chatId, messages }),
+    }),
 };

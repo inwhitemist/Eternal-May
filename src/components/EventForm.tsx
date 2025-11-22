@@ -23,6 +23,17 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
   const [imageData, setImageData] = useState<string | undefined>(initial?.imageData);
   const [legendary, setLegendary] = useState(Boolean(initial?.code));
   const [code, setCode] = useState(initial?.code || "");
+  const [chatId, setChatId] = useState(initial?.chatId || "");
+  const [chatFromId, setChatFromId] = useState(
+    initial?.chatFromId !== undefined && initial?.chatFromId !== null
+      ? String(initial.chatFromId)
+      : ""
+  );
+  const [chatToId, setChatToId] = useState(
+    initial?.chatToId !== undefined && initial?.chatToId !== null
+      ? String(initial.chatToId)
+      : ""
+  );
 
   React.useEffect(() => {
     if (legendary) {
@@ -82,6 +93,13 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
           color: color || undefined,
           imageData,
           ...(legendary ? { code: code.trim().toUpperCase() } : {}),
+          ...(chatId.trim()
+            ? {
+                chatId: chatId.trim(),
+                chatFromId: chatFromId ? Number(chatFromId) : undefined,
+                chatToId: chatToId ? Number(chatToId) : undefined,
+              }
+            : { chatId: undefined, chatFromId: undefined, chatToId: undefined }),
         };
         onSubmit(ev);
       }}
@@ -139,6 +157,37 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Короткая история/заметки"
           />
+        </div>
+        <div className="grid gap-2">
+          <label className="text-xs text-black/60 dark:text-white/60">
+            Переписка (chatId и диапазон сообщений)
+          </label>
+          <div className="grid gap-2 sm:grid-cols-[1fr_140px_140px] sm:items-center sm:gap-3">
+            <Input
+              value={chatId}
+              onChange={(e) => setChatId(e.target.value)}
+              placeholder="Например: samir"
+              aria-label="ID чата"
+            />
+            <Input
+              type="number"
+              value={chatFromId}
+              onChange={(e) => setChatFromId(e.target.value)}
+              placeholder="Сообщение от"
+              min={0}
+            />
+            <Input
+              type="number"
+              value={chatToId}
+              onChange={(e) => setChatToId(e.target.value)}
+              placeholder="Сообщение до"
+              min={0}
+            />
+          </div>
+          <p className="text-xs text-black/50 dark:text-white/50">
+            Укажите chatId (имя JSON-файла без .json) и диапазон ID сообщений, который
+            нужно показать в карточке.
+          </p>
         </div>
         <div className="grid gap-1">
           <label className="text-xs text-black/60 dark:text-white/60">Теги</label>

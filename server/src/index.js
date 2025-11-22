@@ -9,6 +9,8 @@ import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
+import fs from "fs/promises";
+import path from "path";
 import { connectDB, User, Event, LegendaryUnlock } from "./db.js";
 
 const app = express();
@@ -16,6 +18,7 @@ const PORT = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET;
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:5173";
 const CLIENT_ORIGIN_PATH = process.env.CLIENT_ORIGIN_PATH || "";
+const CHAT_DIR = path.join(process.cwd(), "data", "chats");
 
 const authLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -68,6 +71,10 @@ function auth(req, res, next) {
   catch { return res.status(401).json({ error: "invalid_token" }); }
 }
 
+async function ensureChatDir() {
+  await fs.mkdir(CHAT_DIR, { recursive: true });
+}
+
 const registerSchema = z.object({ email: z.string().email(), password: z.string().min(6), invite: z.string().min(1).optional() });
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(6) });
 const eventSchema = z.object({
@@ -79,6 +86,21 @@ const eventSchema = z.object({
   color: z.string().optional(),
   imageData: z.string().optional(),
   code: z.string().optional(),
+  chatId: z.string().trim().min(1).optional().nullable(),
+  chatFromId: z.coerce.number().int().optional().nullable(),
+  chatToId: z.coerce.number().int().optional().nullable(),
+});
+
+const chatMessageSchema = z.object({
+  id: z.coerce.number().int(),
+  datetime: z.string().min(1),
+  author: z.string().min(1),
+  text: z.string().default(""),
+});
+
+const chatUploadSchema = z.object({
+  chatId: z.string().trim().min(1).regex(/^[a-zA-Z0-9_-]+$/),
+  messages: z.array(chatMessageSchema),
 });
 
 const legendaryEventsData = {
@@ -141,14 +163,22 @@ app.post("/api/events", auth, async (req, res) => {
   if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
   try {
     let data = eventSchema.parse(req.body);
-    let { id, code, tags = [], ...rest } = data;          // <-- выбрасываем client-side id
+    let { id, code, tags = [], chatId, chatFromId, chatToId, ...rest } = data;          // <-- выбрасываем client-side id
     code = code ? code.trim().toUpperCase() : undefined;
     if (code && !tags.includes("legendary")) tags.push("legendary");
     if (code) {
       const exists = await Event.findOne({ code });
       if (exists) return res.status(409).json({ error: "duplicate_code" });
     }
-    const ev = await Event.create({ ...rest, tags, code: code || null, userId: req.user.uid });
+    const ev = await Event.create({
+      ...rest,
+      tags,
+      code: code || null,
+      userId: req.user.uid,
+      chatId: chatId || null,
+      chatFromId: chatFromId ?? null,
+      chatToId: chatToId ?? null,
+    });
     if (code) {
       await LegendaryUnlock.create({ userId: req.user.uid, code });
     }
@@ -198,7 +228,7 @@ app.put("/api/events/:id", auth, async (req, res) => {
       return res.status(400).json({ error: "invalid_id" });
     }
     let data = eventSchema.parse(req.body);
-    let { id: _clientId, code, tags = [], ...rest } = data;   // <-- игнорируем client-side id
+    let { id: _clientId, code, tags = [], chatId, chatFromId, chatToId, ...rest } = data;   // <-- игнорируем client-side id
     code = code ? code.trim().toUpperCase() : undefined;
     if (code && !tags.includes("legendary")) tags.push("legendary");
     if (code) {
@@ -207,7 +237,13 @@ app.put("/api/events/:id", auth, async (req, res) => {
     }
     const ev = await Event.findById(id);
     if (!ev) return res.status(404).json({ error: "not_found" });
-    Object.assign(ev, rest, { tags, code: code || null });
+    Object.assign(ev, rest, {
+      tags,
+      code: code || null,
+      chatId: chatId || null,
+      chatFromId: chatFromId ?? null,
+      chatToId: chatToId ?? null,
+    });
     await ev.save();
     if (code) {
       await LegendaryUnlock.updateOne(
@@ -233,6 +269,42 @@ app.delete("/api/events/:id", auth, async (req, res) => {
     if (!ev) return res.status(404).json({ error: "not_found" });
     await ev.deleteOne();
     res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" });
+  }
+});
+
+// ======= Переписки (чтение) =======
+app.get("/api/chats/:chatId", auth, async (req, res) => {
+  try {
+    const chatId = (req.params.chatId || "").trim();
+    if (!/^[a-zA-Z0-9_-]+$/.test(chatId)) return res.status(400).json({ error: "invalid_chat_id" });
+    const fromId = req.query.fromId !== undefined ? Number(req.query.fromId) : undefined;
+    const toId = req.query.toId !== undefined ? Number(req.query.toId) : undefined;
+    await ensureChatDir();
+    const filePath = path.join(CHAT_DIR, `${chatId}.json`);
+    const raw = await fs.readFile(filePath, "utf8");
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error("bad_format");
+    let messages = parsed;
+    if (fromId !== undefined && !Number.isNaN(fromId)) messages = messages.filter((m) => Number(m.id) >= fromId);
+    if (toId !== undefined && !Number.isNaN(toId)) messages = messages.filter((m) => Number(m.id) <= toId);
+    res.json({ messages });
+  } catch (e) {
+    if (e.code === "ENOENT") return res.status(404).json({ error: "chat_not_found" });
+    res.status(400).json({ error: "bad_chat_data" });
+  }
+});
+
+// ======= Админ: загрузка переписок =======
+app.post("/api/admin/chats", auth, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
+  try {
+    const { chatId, messages } = chatUploadSchema.parse(req.body);
+    await ensureChatDir();
+    const filePath = path.join(CHAT_DIR, `${chatId}.json`);
+    await fs.writeFile(filePath, JSON.stringify(messages, null, 2), "utf8");
+    res.json({ ok: true, messages: messages.length });
   } catch (e) {
     res.status(400).json({ error: e.errors?.[0]?.message || "bad_request" });
   }

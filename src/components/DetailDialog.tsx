@@ -1,8 +1,9 @@
 import React from "react";
-import { Calendar as CalendarIcon, Edit3, Info, Trash2, X } from "lucide-react";
+import { Calendar as CalendarIcon, Edit3, Info, MessagesSquare, Trash2, X } from "lucide-react";
 import { Button, Dialog } from "./ui";
-import { EventItem } from "../types";
+import { ChatMessage, EventItem } from "../types";
 import { formatDateHuman } from "../utils/helpers";
+import { api } from "../api";
 
 interface Props {
   open: boolean;
@@ -23,6 +24,35 @@ export default function DetailDialog({
   onDelete,
   onImagePreview,
 }: Props) {
+  const [chatMessages, setChatMessages] = React.useState<ChatMessage[] | null>(null);
+  const [chatError, setChatError] = React.useState<string | null>(null);
+  const [chatLoading, setChatLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setChatMessages(null);
+    setChatError(null);
+    if (!event?.chatId) return;
+    setChatLoading(true);
+    api
+      .getChatMessages(event.chatId, event.chatFromId ?? undefined, event.chatToId ?? undefined)
+      .then((r) => {
+        if (cancelled) return;
+        setChatMessages(r.messages || []);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setChatError(e?.message || "Не удалось загрузить переписку");
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setChatLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [event?.chatId, event?.chatFromId, event?.chatToId]);
+
   if (!open || !event) return null;
   return (
     <Dialog open={open} onClose={onClose}>
@@ -65,12 +95,53 @@ export default function DetailDialog({
             ))}
           </div>
         ) : null}
+        {event.chatId && (
+          <div className="grid gap-2">
+            <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-emerald-700 dark:text-emerald-200">
+              <MessagesSquare size={16} /> Переписка
+              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-200">
+                {event.chatId}.json
+              </span>
+              {(event.chatFromId || event.chatToId) && (
+                <span className="text-xs text-black/60 dark:text-white/60">
+                  {event.chatFromId ? `ID с ${event.chatFromId}` : ""}
+                  {event.chatFromId && event.chatToId ? " – " : ""}
+                  {event.chatToId ? `до ${event.chatToId}` : ""}
+                </span>
+              )}
+            </div>
+            {chatLoading && (
+              <div className="text-sm text-black/60 dark:text-white/60">Загрузка переписки…</div>
+            )}
+            {chatError && <div className="text-sm text-red-500">{chatError}</div>}
+            {!chatLoading && !chatError && (
+              <div className="grid gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+                {chatMessages?.length ? (
+                  chatMessages.map((m) => (
+                    <div
+                      key={m.id}
+                      className="grid gap-1 rounded-lg bg-white/70 p-2 shadow-sm dark:bg-white/5"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-black/60 dark:text-white/60">
+                        <span className="font-semibold text-black/80 dark:text-white/80">{m.author}</span>
+                        <span className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] dark:bg-white/10">#{m.id}</span>
+                        <span>{m.datetime}</span>
+                      </div>
+                      <div className="text-sm whitespace-pre-line text-black/80 dark:text-white/80">{m.text}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-black/60 dark:text-white/60">
+                    Сообщений в указанном диапазоне нет
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         {admin && (
           <div className="mt-2 flex items-center justify-end gap-2">
-            <Button
-              variant="soft"
-              onClick={() => onEdit(event)}
-            >
+            <Button variant="soft" onClick={() => onEdit(event)}>
               <Edit3 size={16} /> Редактировать
             </Button>
             <Button variant="outline" onClick={() => onDelete(event)}>

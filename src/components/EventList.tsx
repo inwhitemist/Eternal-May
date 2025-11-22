@@ -1,6 +1,6 @@
 import React, { RefObject, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Calendar as CalendarIcon, Edit3, Trash2, Trophy, Image as ImageIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Edit3, Trash2, Trophy, Image as ImageIcon, MessagesSquare } from "lucide-react";
 import { Button, cn } from "./ui";
 import { SkeletonList } from "./Skeletons";
 import { EventItem } from "../types";
@@ -55,6 +55,7 @@ export default function EventList({
     const isLegendary = Boolean(ev.code) || ev.tags?.includes("legendary");
     const accent = isLegendary ? ev.color || "#f5c542" : ev.color || "#8b5cf6";
     const hasImage = Boolean(ev.imageData);
+    const hasChat = Boolean(ev.chatId);
     // Initialize VanillaTilt on the card element instead of CSS hover scale
     const tiltRef = React.useRef<HTMLButtonElement>(null);
     useEffect(() => {
@@ -159,6 +160,14 @@ export default function EventList({
               title="В событии есть изображение"
             >
               <ImageIcon size={14} /> Фото
+            </span>
+          )}
+          {hasChat && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-200"
+              title="В событии есть переписка"
+            >
+              <MessagesSquare size={14} /> Чат
             </span>
           )}
         </div>
