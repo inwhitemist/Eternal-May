@@ -4,19 +4,32 @@ export default function ParallaxBackground() {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let mounted = true;
-    function onMove(e: MouseEvent) {
-      if (!ref.current) return;
+    const mountedRef = { current: true };
+    const isVisibleRef = { current: true };
+    const onMove = (e: MouseEvent) => {
+      if (!ref.current || !isVisibleRef.current) return;
       const { left, top, width, height } = ref.current.getBoundingClientRect();
       const x = ((e.clientX - left) / width - 0.5) * 2;
       const y = ((e.clientY - top) / height - 0.5) * 2;
-      if (!mounted) return;
+      if (!mountedRef.current) return;
       ref.current.style.setProperty("--px", x.toFixed(3));
       ref.current.style.setProperty("--py", y.toFixed(3));
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        isVisibleRef.current = entry.isIntersecting;
+      });
+    });
+
+    if (ref.current) {
+      observer.observe(ref.current);
     }
+
     window.addEventListener("mousemove", onMove);
     return () => {
-      mounted = false;
+      mountedRef.current = false;
+      observer.disconnect();
       window.removeEventListener("mousemove", onMove);
     };
   }, []);

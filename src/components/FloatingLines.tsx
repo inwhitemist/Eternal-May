@@ -271,6 +271,7 @@ export default function FloatingLines({
   mixBlendMode = 'screen'
 }: FloatingLinesProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const isVisibleRef = useRef(true);
   const targetMouseRef = useRef<Vector2>(new Vector2(-1000, -1000));
   const currentMouseRef = useRef<Vector2>(new Vector2(-1000, -1000));
   const targetInfluenceRef = useRef<number>(0);
@@ -452,6 +453,11 @@ export default function FloatingLines({
 
     let raf = 0;
     const renderLoop = () => {
+      if (!isVisibleRef.current) {
+        raf = 0;
+        return;
+      }
+
       uniforms.iTime.value = clock.getElapsedTime();
 
       if (interactive) {
@@ -470,10 +476,26 @@ export default function FloatingLines({
       renderer.render(scene, camera);
       raf = requestAnimationFrame(renderLoop);
     };
-    renderLoop();
+    const startLoop = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(renderLoop);
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        isVisibleRef.current = entry.isIntersecting;
+        if (entry.isIntersecting) {
+          startLoop();
+        }
+      });
+    });
+
+    observer.observe(containerRef.current);
+    startLoop();
 
     return () => {
       cancelAnimationFrame(raf);
+      observer.disconnect();
       if (ro && containerRef.current) {
         ro.disconnect();
       }
