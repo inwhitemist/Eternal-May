@@ -50,7 +50,7 @@ export function formatChatTimestamp(value?: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   });
-  return `${datePart}, ${timePart}`;
+  return `${datePart} ${timePart}`;
 }
 
 export function getYear(iso: string) {

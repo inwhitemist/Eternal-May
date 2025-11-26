@@ -30,7 +30,7 @@ export default function ImagePreview({ src, onClose }: Props) {
           <motion.img
             src={src}
             alt="Просмотр изображения"
-            className="max-h-[90vh] max-w-[92vw] border border-white/20 object-contain shadow-[0_30px_120px_rgba(0,0,0,0.65)]"
+            className="max-h-[90vh] max-w-[92vw object-contain shadow-[0_30px_120px_rgba(0,0,0,0.65)]"
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
