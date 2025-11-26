@@ -32,7 +32,8 @@ export default function DetailDialog({
   const [chatLoading, setChatLoading] = React.useState(false);
   const [chatVisible, setChatVisible] = React.useState(false);
   const [showScrollTop, setShowScrollTop] = React.useState(false);
-  const chatContentRef = React.useRef<HTMLDivElement | null>(null);
+  const dialogScrollRef = React.useRef<HTMLDivElement | null>(null);
+  const chatSectionRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -81,19 +82,144 @@ export default function DetailDialog({
   const displayedMessages = chatMessages ?? [];
   const totalMessages = displayedMessages.length;
   const isLargeChat = totalMessages > LARGE_CHAT_THRESHOLD;
+  const messageCards = React.useMemo(() => {
+    return displayedMessages.map((m) => {
+      const imageUrls = extractImageUrls(m.text);
+      const textContent = stripImageUrls(m.text, imageUrls);
+      const ATTACHMENT_PHRASE = "1 прикреплённое сообщение";
+      const POST_PHRASE = "Запись на стене";
+      const AUDIO_PHRASE = "Аудиозапись";
+      const VIDEO_PHRASE = "Видеозапись";
+      const hasAttachmentPhrase = textContent.includes(ATTACHMENT_PHRASE);
+      const hasPostPhrase = textContent.includes(POST_PHRASE);
+      const hasAudioPhrase = textContent.includes(AUDIO_PHRASE);
+      const hasVideoPhrase = textContent.includes(VIDEO_PHRASE);
+      const isStickerMessage = textContent === "Стикер";
+      const isCurrentUser = m.author === "Вы";
+      const highlightPhraseNodes = (
+        nodes: React.ReactNode[],
+        phrase: string,
+        keyPrefix: string
+      ) => {
+        return nodes.reduce<React.ReactNode[]>((acc, node, nodeIdx) => {
+          if (typeof node !== "string" || !node.includes(phrase)) {
+            acc.push(node);
+            return acc;
+          }
+          const segments = node.split(phrase);
+          segments.forEach((segment, segmentIdx) => {
+            acc.push(segment);
+            if (segmentIdx < segments.length - 1) {
+              acc.push(
+                <span
+                  key={`${m.id}-${keyPrefix}-${nodeIdx}-${segmentIdx}`}
+                  className="text-black/40 dark:text-white/40"
+                >
+                  {phrase}
+                </span>
+              );
+            }
+          });
+          return acc;
+        }, []);
+      };
+      let formattedContent: React.ReactNode = textContent;
+      if (
+        textContent &&
+        (hasAttachmentPhrase || hasPostPhrase || hasAudioPhrase || hasVideoPhrase)
+      ) {
+        let nodes: React.ReactNode[] = [textContent];
+        if (hasAttachmentPhrase) {
+          nodes = highlightPhraseNodes(nodes, ATTACHMENT_PHRASE, "attachment");
+        }
+        if (hasPostPhrase) {
+          nodes = highlightPhraseNodes(nodes, POST_PHRASE, "post");
+        }
+        if (hasAudioPhrase) {
+          nodes = highlightPhraseNodes(nodes, AUDIO_PHRASE, "audio");
+        }
+        if (hasVideoPhrase) {
+          nodes = highlightPhraseNodes(nodes, VIDEO_PHRASE, "video");
+        }
+        formattedContent = nodes;
+      }
+      const bubbleClass = imageUrls.length
+        ? "border-black/5 bg-white/95 dark:border-white/10 dark:bg-neutral-900/70"
+        : "border-black/5 bg-white/95 dark:border-white/10 dark:bg-neutral-900/70";
+      return (
+        <div
+          key={m.id}
+          className={`rounded-2xl border px-4 py-3 text-sm shadow-sm backdrop-blur-sm transition hover:shadow-md ${bubbleClass}`}
+          style={{ wordBreak: "break-word", overflowWrap: "anywhere", maxWidth: "100%" }}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-black/60 dark:text-white/60">
+            <span
+              className={`font-semibold ${
+                isCurrentUser ? "text-emerald-600 dark:text-emerald-300" : "text-black dark:text-white"
+              }`}
+            >
+              {m.author}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-normal text-black/60 dark:bg-white/10 dark:text-white/70">
+              <Clock size={12} className="opacity-70" />
+              {formatChatTimestamp(m.datetime)}
+            </span>
+          </div>
+          {textContent && (
+            <p
+              className={`mt-2 whitespace-pre-line text-[15px] leading-relaxed ${
+                isStickerMessage ? "text-black/40 dark:text-white/40 italic" : "text-black/80 dark:text-white/80"
+              }`}
+              style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}
+            >
+              {formattedContent}
+            </p>
+          )}
+          {imageUrls.length > 0 && (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {imageUrls.map((url, idx) => (
+                <button
+                  type="button"
+                  key={`${m.id}-${idx}`}
+                  className="group relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-black/5 shadow-inner transition hover:border-emerald-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+                  onClick={() => onImagePreview(url)}
+                >
+                  <img
+                    src={url}
+                    alt="Фото из переписки"
+                    className="h-44 w-full cursor-zoom-in object-cover transition duration-300 group-hover:scale-[1.03]"
+                    loading="lazy"
+                  />
+                  <span className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-xs text-white opacity-0 transition group-hover:opacity-100">
+                    Открыть
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    });
+  }, [displayedMessages, extractImageUrls, stripImageUrls, onImagePreview]);
 
-  const scrollChatToBoundary = React.useCallback((boundary: "start" | "end") => {
-    const container = chatContentRef.current;
-    if (!container) return;
-    const top = boundary === "start" ? 0 : container.scrollHeight;
-    container.scrollTo({ top, behavior: "smooth" });
+  const scrollChatToTop = React.useCallback(() => {
+    const container = dialogScrollRef.current;
+    const chatSection = chatSectionRef.current;
+    if (!container || !chatSection) return;
+    const offset = Math.max(chatSection.offsetTop - 16, 0);
+    container.scrollTo({ top: offset, behavior: "smooth" });
   }, []);
 
   React.useEffect(() => {
-    const container = chatContentRef.current;
+    const container = dialogScrollRef.current;
     if (!container) return;
     const handleScroll = () => {
-      setShowScrollTop(container.scrollTop > 200);
+      if (!chatVisible || !chatSectionRef.current) {
+        setShowScrollTop(false);
+        return;
+      }
+      const chatTop = chatSectionRef.current.offsetTop;
+      setShowScrollTop(container.scrollTop > chatTop + 200);
     };
     handleScroll();
     container.addEventListener("scroll", handleScroll);
@@ -140,7 +266,10 @@ export default function DetailDialog({
           <X size={18} />
         </Button>
       </div>
-      <div className="flex max-h-[85vh] flex-col gap-3 overflow-y-auto p-4">
+      <div
+        className="flex max-h-[85vh] flex-col gap-3 overflow-y-auto p-4"
+        ref={dialogScrollRef}
+      >
         <div className="text-sm opacity-80">
           <CalendarIcon className="-mt-0.5 inline" size={14} /> {formatDateHuman(event.date)}
         </div>
@@ -172,7 +301,10 @@ export default function DetailDialog({
           </div>
         ) : null}
         {event.chatId && (
-          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3">
+          <div
+            className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3"
+            ref={chatSectionRef}
+          >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-200">
                 <MessagesSquare size={16} /> Переписка
@@ -199,148 +331,29 @@ export default function DetailDialog({
                 )}
                 {chatError && <div className="text-sm text-red-500">{chatError}</div>}
                 {!chatLoading && !chatError && (
-                  <div className="relative">
-                    <div
-                      className="flex max-h-[55vh] flex-col gap-3 overflow-y-auto pr-1"
-                      ref={chatContentRef}
-                    >
-                      {displayedMessages.length ? (
-                        displayedMessages.map((m) => {
-                        const imageUrls = extractImageUrls(m.text);
-                        const textContent = stripImageUrls(m.text, imageUrls);
-                        const ATTACHMENT_PHRASE = "1 прикреплённое сообщение";
-                        const POST_PHRASE = "Запись на стене";
-                        const AUDIO_PHRASE = "Аудиозапись";
-                        const VIDEO_PHRASE = "Видеозапись";
-                        const hasAttachmentPhrase = textContent.includes(ATTACHMENT_PHRASE);
-                        const hasPostPhrase = textContent.includes(POST_PHRASE);
-                        const hasAudioPhrase = textContent.includes(AUDIO_PHRASE);
-                        const hasVideoPhrase = textContent.includes(VIDEO_PHRASE);
-                        const isStickerMessage = textContent === "Стикер";
-                        const isCurrentUser = m.author === "Вы";
-                        const highlightPhraseNodes = (
-                          nodes: React.ReactNode[],
-                          phrase: string,
-                          keyPrefix: string
-                        ) => {
-                          return nodes.reduce<React.ReactNode[]>((acc, node, nodeIdx) => {
-                            if (typeof node !== "string" || !node.includes(phrase)) {
-                              acc.push(node);
-                              return acc;
-                            }
-                            const segments = node.split(phrase);
-                            segments.forEach((segment, segmentIdx) => {
-                              acc.push(segment);
-                              if (segmentIdx < segments.length - 1) {
-                                acc.push(
-                                  <span
-                                    key={`${m.id}-${keyPrefix}-${nodeIdx}-${segmentIdx}`}
-                                    className="text-black/40 dark:text-white/40"
-                                  >
-                                    {phrase}
-                                  </span>
-                                );
-                              }
-                            });
-                            return acc;
-                          }, []);
-                        };
-                        let formattedContent: React.ReactNode = textContent;
-                        if (
-                          textContent &&
-                          (hasAttachmentPhrase || hasPostPhrase || hasAudioPhrase || hasVideoPhrase)
-                        ) {
-                          let nodes: React.ReactNode[] = [textContent];
-                          if (hasAttachmentPhrase) {
-                            nodes = highlightPhraseNodes(nodes, ATTACHMENT_PHRASE, "attachment");
-                          }
-                          if (hasPostPhrase) {
-                            nodes = highlightPhraseNodes(nodes, POST_PHRASE, "post");
-                          }
-                          if (hasAudioPhrase) {
-                            nodes = highlightPhraseNodes(nodes, AUDIO_PHRASE, "audio");
-                          }
-                          if (hasVideoPhrase) {
-                            nodes = highlightPhraseNodes(nodes, VIDEO_PHRASE, "video");
-                          }
-                          formattedContent = nodes;
-                        }
-                        const bubbleClass = imageUrls.length
-                          ? "border-black/5 bg-white/95 dark:border-white/10 dark:bg-neutral-900/70"
-                          : "border-black/5 bg-white/95 dark:border-white/10 dark:bg-neutral-900/70";
-                        return (
-                          <div
-                            key={m.id}
-                            className={`rounded-2xl border px-4 py-3 text-sm shadow-sm backdrop-blur-sm transition hover:shadow-md ${bubbleClass}`}
-                            style={{ wordBreak: "break-word", overflowWrap: "anywhere", maxWidth: "100%" }}
-                          >
-                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-black/60 dark:text-white/60">
-                              <span
-                                className={`font-semibold ${
-                                  isCurrentUser ? "text-emerald-600 dark:text-emerald-300" : "text-black dark:text-white"
-                                }`}
-                              >
-                                {m.author}
-                              </span>
-                              <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-normal text-black/60 dark:bg-white/10 dark:text-white/70">
-                                <Clock size={12} className="opacity-70" />
-                                {formatChatTimestamp(m.datetime)}
-                              </span>
-                            </div>
-                            {textContent && (
-                              <p
-                                className={`mt-2 whitespace-pre-line text-[15px] leading-relaxed ${
-                                  isStickerMessage ? "text-black/40 dark:text-white/40 italic" : "text-black/80 dark:text-white/80"
-                                }`}
-                                style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}
-                              >
-                                {formattedContent}
-                              </p>
-                            )}
-                            {imageUrls.length > 0 && (
-                              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                                {imageUrls.map((url, idx) => (
-                                  <button
-                                    type="button"
-                                    key={`${m.id}-${idx}`}
-                                    className="group relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-black/5 shadow-inner transition hover:border-emerald-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
-                                    onClick={() => onImagePreview(url)}
-                                  >
-                                    <img
-                                      src={url}
-                                      alt="Фото из переписки"
-                                      className="h-44 w-full cursor-zoom-in object-cover transition duration-300 group-hover:scale-[1.03]"
-                                      loading="lazy"
-                                    />
-                                    <span className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-xs text-white opacity-0 transition group-hover:opacity-100">
-                                      Открыть
-                                    </span>
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="text-sm text-black/60 dark:text-white/60">
-                        Сообщений в указанном диапазоне нет
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-3">
+                      {messageCards.length ? (
+                        messageCards
+                      ) : (
+                        <div className="text-sm text-black/60 dark:text-white/60">
+                          Сообщений в указанном диапазоне нет
+                        </div>
+                      )}
+                    </div>
+                    {showScrollTop && (
+                      <div className="pointer-events-none sticky bottom-3 flex justify-end pr-1">
+                        <Button
+                          variant="ghost"
+                          className="pointer-events-auto rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-emerald-700 shadow-lg ring-1 ring-emerald-500/30 backdrop-blur-sm dark:bg-neutral-900/90 dark:text-emerald-100"
+                          onClick={scrollChatToTop}
+                        >
+                          К началу
+                        </Button>
                       </div>
                     )}
                   </div>
-                  {showScrollTop && (
-                    <div className="pointer-events-none absolute bottom-3 right-3">
-                      <Button
-                        variant="ghost"
-                        className="pointer-events-auto rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-emerald-700 shadow-lg ring-1 ring-emerald-500/30 backdrop-blur-sm dark:bg-neutral-900/90 dark:text-emerald-100"
-                        onClick={() => scrollChatToBoundary("start")}
-                      >
-                        К началу
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
+                )}
               </div>
             ) : (
               <div className="mt-3 text-sm text-black/60 dark:text-white/60">
