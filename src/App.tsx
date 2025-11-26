@@ -27,7 +27,15 @@ import FiltersPanel from "./components/FiltersPanel";
 import EventList from "./components/EventList";
 const AuthDialog = React.lazy(() => import("./components/AuthDialog"));
 const AddDialog = React.lazy(() => import("./components/AddDialog"));
-const DetailDialog = React.lazy(() => import("./components/DetailDialog"));
+const loadDetailDialog = () => import("./components/DetailDialog");
+const DetailDialog = React.lazy(loadDetailDialog);
+let detailDialogPreloadPromise: Promise<typeof import("./components/DetailDialog")> | null = null;
+const preloadDetailDialog = () => {
+  if (!detailDialogPreloadPromise) {
+    detailDialogPreloadPromise = loadDetailDialog();
+  }
+  return detailDialogPreloadPromise;
+};
 const AdminDialog = React.lazy(() => import("./components/AdminDialog"));
 import ShinyText from './components/ShinyText';
 import ImagePreview from "./components/ImagePreview";
@@ -185,6 +193,31 @@ export default function LifeTimelineApp() {
     }),
     []
   );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+    const runPreload = () => {
+      if (!cancelled) {
+        preloadDetailDialog();
+      }
+    };
+    const w = window as typeof window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    if (typeof w.requestIdleCallback === "function") {
+      const idleHandle = w.requestIdleCallback(runPreload, { timeout: 2000 });
+      return () => {
+        cancelled = true;
+        w.cancelIdleCallback?.(idleHandle);
+      };
+    }
+    const timeout = window.setTimeout(runPreload, 1000);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, []);
   // Loading overlay handling: scroll away, lock scroll, then restore
   const prevScrollRef = useRef(0);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
