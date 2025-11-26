@@ -388,6 +388,18 @@ export default function FloatingLines({
 
     const clock = new Clock();
 
+    let containerRect = containerRef.current.getBoundingClientRect();
+    let rectMeasureRaf = 0;
+    const measureRect = () => {
+      rectMeasureRaf = 0;
+      if (!containerRef.current) return;
+      containerRect = containerRef.current.getBoundingClientRect();
+    };
+    const scheduleRectMeasure = () => {
+      if (rectMeasureRaf) return;
+      rectMeasureRaf = requestAnimationFrame(measureRect);
+    };
+
     const setSize = () => {
       const el = containerRef.current!;
       const width = el.clientWidth || 1;
@@ -398,6 +410,7 @@ export default function FloatingLines({
       const canvasWidth = renderer.domElement.width;
       const canvasHeight = renderer.domElement.height;
       uniforms.iResolution.value.set(canvasWidth, canvasHeight, 1);
+      measureRect();
     };
 
     setSize();
@@ -408,28 +421,42 @@ export default function FloatingLines({
       ro.observe(containerRef.current);
     }
 
-    const handlePointerMove = (event: PointerEvent) => {
-      if (!containerRef.current) {
-        return;
-      }
+    const handleScroll = () => scheduleRectMeasure();
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', scheduleRectMeasure);
 
-      const rect = containerRef.current.getBoundingClientRect();
-      const width = rect.width || 1;
-      const height = rect.height || 1;
+    type PointerSnapshot = {
+      clientX: number;
+      clientY: number;
+      hasPointer: boolean;
+    };
+    const pointerState: PointerSnapshot = {
+      clientX: -1,
+      clientY: -1,
+      hasPointer: false
+    };
+    let pointerRaf = 0;
+
+    const applyPointerState = () => {
+      pointerRaf = 0;
+      if (!containerRef.current || !interactive) return;
+
+      const width = containerRect.width || 1;
+      const height = containerRect.height || 1;
       const dpr = renderer.getPixelRatio();
 
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
+      const localX = pointerState.clientX - containerRect.left;
+      const localY = pointerState.clientY - containerRect.top;
+      const clampedX = Math.min(Math.max(localX, 0), width);
+      const clampedY = Math.min(Math.max(localY, 0), height);
 
-      const clampedX = Math.min(Math.max(x, 0), width);
-      const clampedY = Math.min(Math.max(y, 0), height);
-      const isInside = x >= 0 && x <= width && y >= 0 && y <= height;
+      const inside = pointerState.hasPointer && localX >= 0 && localX <= width && localY >= 0 && localY <= height;
 
       targetMouseRef.current.set(clampedX * dpr, (height - clampedY) * dpr);
-      targetInfluenceRef.current = isInside ? 1.0 : 0.0;
+      targetInfluenceRef.current = inside ? 1.0 : 0.0;
 
       if (parallax) {
-        if (isInside) {
+        if (inside) {
           const offsetX = clampedX / width - 0.5;
           const offsetY = -(clampedY / height - 0.5);
           targetParallaxRef.current.set(offsetX * parallaxStrength, offsetY * parallaxStrength);
@@ -439,7 +466,21 @@ export default function FloatingLines({
       }
     };
 
+    const schedulePointerApplication = () => {
+      if (!interactive) return;
+      if (pointerRaf) return;
+      pointerRaf = requestAnimationFrame(applyPointerState);
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      pointerState.clientX = event.clientX;
+      pointerState.clientY = event.clientY;
+      pointerState.hasPointer = true;
+      schedulePointerApplication();
+    };
+
     const handlePointerLeave = () => {
+      pointerState.hasPointer = false;
       targetInfluenceRef.current = 0.0;
       if (parallax) {
         targetParallaxRef.current.set(0, 0);
@@ -447,7 +488,7 @@ export default function FloatingLines({
     };
 
     if (interactive) {
-      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointermove', handlePointerMove, { passive: true });
       window.addEventListener('pointerleave', handlePointerLeave);
     }
 
@@ -495,10 +536,15 @@ export default function FloatingLines({
 
     return () => {
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(pointerRaf);
+      cancelAnimationFrame(rectMeasureRaf);
       observer.disconnect();
       if (ro && containerRef.current) {
         ro.disconnect();
       }
+
+      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', scheduleRectMeasure);
 
       if (interactive) {
         window.removeEventListener('pointermove', handlePointerMove);

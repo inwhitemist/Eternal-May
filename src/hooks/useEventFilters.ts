@@ -1,13 +1,48 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { SetStateAction, useCallback, useDeferredValue, useMemo, useState, useTransition } from "react";
 import { EventItem } from "../types";
 import { getMonth, getYear } from "../utils/helpers";
 
 export function useEventFilters(events: EventItem[]) {
   const [query, setQuery] = useState("");
-  const [year, setYear] = useState<number | "all">("all");
-  const [month, setMonth] = useState<number | "all">("all");
-  const [activeTags, setActiveTags] = useState<string[]>([]);
-  const [view, setView] = useState<"timeline" | "calendar">("timeline");
+  const [yearState, setYearState] = useState<number | "all">("all");
+  const [monthState, setMonthState] = useState<number | "all">("all");
+  const [activeTagsState, setActiveTagsState] = useState<string[]>([]);
+  const [viewState, setViewState] = useState<"timeline" | "calendar">("timeline");
+  const [isFilteringPending, startFilteringTransition] = useTransition();
+
+  const setYear = useCallback(
+    (next: number | "all") => {
+      startFilteringTransition(() => setYearState(next));
+    },
+    [startFilteringTransition]
+  );
+  const setMonth = useCallback(
+    (next: number | "all") => {
+      startFilteringTransition(() => setMonthState(next));
+    },
+    [startFilteringTransition]
+  );
+  const setActiveTags = useCallback(
+    (next: SetStateAction<string[]>) => {
+      startFilteringTransition(() => {
+        setActiveTagsState((prev) =>
+          typeof next === "function" ? (next as (prev: string[]) => string[])(prev) : next
+        );
+      });
+    },
+    [startFilteringTransition]
+  );
+  const setView = useCallback(
+    (next: "timeline" | "calendar") => {
+      startFilteringTransition(() => setViewState(next));
+    },
+    [startFilteringTransition]
+  );
+
+  const year = yearState;
+  const month = monthState;
+  const activeTags = activeTagsState;
+  const view = viewState;
 
   const allTags = useMemo(() => {
     const s = new Set<string>();
@@ -71,5 +106,6 @@ export function useEventFilters(events: EventItem[]) {
     filtered,
     prevYear,
     nextYear,
+    isFilteringPending,
   };
 }

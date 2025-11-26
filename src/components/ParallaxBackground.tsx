@@ -6,14 +6,43 @@ export default function ParallaxBackground() {
   useEffect(() => {
     const mountedRef = { current: true };
     const isVisibleRef = { current: true };
-    const onMove = (e: MouseEvent) => {
-      if (!ref.current || !isVisibleRef.current) return;
-      const { left, top, width, height } = ref.current.getBoundingClientRect();
-      const x = ((e.clientX - left) / width - 0.5) * 2;
-      const y = ((e.clientY - top) / height - 0.5) * 2;
-      if (!mountedRef.current) return;
+    let bounds = ref.current?.getBoundingClientRect() ?? {
+      left: 0,
+      top: 0,
+      width: 1,
+      height: 1,
+    };
+    let boundsRaf = 0;
+    const measureBounds = () => {
+      boundsRaf = 0;
+      if (!ref.current) return;
+      bounds = ref.current.getBoundingClientRect();
+    };
+    const scheduleBoundsMeasure = () => {
+      if (boundsRaf) return;
+      boundsRaf = requestAnimationFrame(measureBounds);
+    };
+
+    let pointerRaf = 0;
+    const pointer = { x: 0, y: 0 };
+    const applyPointer = () => {
+      pointerRaf = 0;
+      if (!ref.current || !isVisibleRef.current || !mountedRef.current) return;
+      const width = bounds.width || 1;
+      const height = bounds.height || 1;
+      const x = ((pointer.x - bounds.left) / width - 0.5) * 2;
+      const y = ((pointer.y - bounds.top) / height - 0.5) * 2;
       ref.current.style.setProperty("--px", x.toFixed(3));
       ref.current.style.setProperty("--py", y.toFixed(3));
+    };
+    const schedulePointerApply = () => {
+      if (pointerRaf) return;
+      pointerRaf = requestAnimationFrame(applyPointer);
+    };
+    const onMove = (e: MouseEvent) => {
+      pointer.x = e.clientX;
+      pointer.y = e.clientY;
+      schedulePointerApply();
     };
 
     const observer = new IntersectionObserver((entries) => {
@@ -22,15 +51,31 @@ export default function ParallaxBackground() {
       });
     });
 
-    if (ref.current) {
-      observer.observe(ref.current);
+    const node = ref.current;
+    if (node) {
+      observer.observe(node);
     }
 
-    window.addEventListener("mousemove", onMove);
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(scheduleBoundsMeasure)
+        : null;
+    if (resizeObserver && node) {
+      resizeObserver.observe(node);
+    }
+    window.addEventListener("scroll", scheduleBoundsMeasure, true);
+    window.addEventListener("resize", scheduleBoundsMeasure);
+    window.addEventListener("mousemove", onMove, { passive: true });
+
     return () => {
       mountedRef.current = false;
       observer.disconnect();
+      resizeObserver?.disconnect();
+      window.removeEventListener("scroll", scheduleBoundsMeasure, true);
+      window.removeEventListener("resize", scheduleBoundsMeasure);
       window.removeEventListener("mousemove", onMove);
+      cancelAnimationFrame(pointerRaf);
+      cancelAnimationFrame(boundsRaf);
     };
   }, []);
 
