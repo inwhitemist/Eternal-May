@@ -35,12 +35,6 @@ export default function EventList({
   const { isIOS, isTouchDevice, prefersReducedMotion } = useDeviceProfile();
   const reduceLegendaryMotion = isIOS || prefersReducedMotion;
   const disableTilt = isTouchDevice || reduceLegendaryMotion;
-  // Progressive reveal to reduce initial render cost on large lists
-  const [visibleCount, setVisibleCount] = React.useState(30);
-  useEffect(() => {
-    // Reset when the dataset changes notably
-    setVisibleCount(30);
-  }, [events.length, view]);
   const EventCard = React.useMemo(() => function EventCard({
     ev,
     className = "",
@@ -250,29 +244,117 @@ export default function EventList({
     );
   }
 
+  function TimelineView() {
+    const [startMs, endMs] = React.useMemo(() => {
+      if (!events.length) return [0, 0];
+      return [new Date(events[0].date).getTime(), new Date(events[events.length - 1].date).getTime()];
+    }, [events]);
+
+    const span = Math.max(1, endMs - startMs);
+    const timelineWidth = Math.max(events.length * 260, 1200);
+
+    const getPosition = React.useCallback(
+      (dateStr: string) => {
+        const ms = new Date(dateStr).getTime();
+        return ((ms - startMs) / span) * 100;
+      },
+      [span, startMs]
+    );
+
+    const yearMarks = React.useMemo(() => {
+      const map = new Map<number, number>();
+      for (const ev of events) {
+        const y = new Date(ev.date).getFullYear();
+        if (!map.has(y)) map.set(y, getPosition(ev.date));
+      }
+      return Array.from(map.entries()).map(([year, pos]) => ({ year, pos }));
+    }, [events, getPosition]);
+
+    return (
+      <div ref={listRef} className="relative">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="rounded-full bg-gradient-to-r from-indigo-500/30 via-fuchsia-500/30 to-amber-400/30 px-4 py-2 text-xs font-semibold text-indigo-900 shadow-sm shadow-indigo-500/20 dark:text-white">
+            Линейный таймлайн — скроль вправо/влево, чтобы пройти всю историю
+          </div>
+          <div className="h-px flex-1 bg-gradient-to-r from-indigo-500/40 via-transparent to-transparent" />
+        </div>
+
+        <div className="relative overflow-x-auto overflow-y-visible pb-12">
+          <div
+            className="relative h-[460px]"
+            style={{ minWidth: timelineWidth }}
+          >
+            <div className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2">
+              <div className="absolute inset-x-0 top-1/2 h-32 -translate-y-1/2 bg-[radial-gradient(circle_at_50%_50%,rgba(99,102,241,0.35),transparent_55%)] blur-3xl opacity-70" />
+              <div className="relative h-1 rounded-full bg-gradient-to-r from-indigo-400 via-fuchsia-400 to-amber-300 shadow-[0_0_25px_rgba(99,102,241,0.5)]" />
+              <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.7),transparent)] animate-[shine_3s_ease_infinite]" />
+            </div>
+
+            {yearMarks.map(({ year, pos }) => (
+              <div
+                key={year}
+                className="absolute top-1/2 -translate-y-1/2 text-center"
+                style={{ left: `${pos}%` }}
+              >
+                <div className="h-10 w-px bg-gradient-to-b from-transparent via-white/80 to-transparent opacity-60" />
+                <div className="mt-1 rounded-full border border-white/30 bg-white/70 px-3 py-1 text-xs font-semibold text-neutral-900 shadow-sm shadow-indigo-500/20 backdrop-blur-sm dark:border-white/10 dark:bg-white/10 dark:text-white">
+                  {year}
+                </div>
+              </div>
+            ))}
+
+            {events.map((ev, idx) => {
+              const pos = getPosition(ev.date);
+              const isTop = idx % 2 === 0;
+              const accent = ev.color || "#8b5cf6";
+              return (
+                <motion.div
+                  key={ev.id}
+                  className="absolute w-[320px] max-w-[90vw]"
+                  style={{
+                    left: `calc(${pos}% - 160px)`,
+                    top: isTop ? "8%" : "54%",
+                  }}
+                  initial={{ opacity: 0, y: isTop ? -20 : 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: idx * 0.02 }}
+                >
+                  <div
+                    className="pointer-events-none absolute left-1/2 top-[46%] h-24 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/80 to-transparent opacity-70"
+                    aria-hidden
+                  />
+                  <div
+                    className="pointer-events-none absolute left-1/2 top-[46%] -translate-x-1/2 rounded-full border-2 border-white/80 bg-white/90 p-2 shadow-lg shadow-indigo-500/20 backdrop-blur-sm dark:border-white/30 dark:bg-white/10"
+                    style={{ boxShadow: `0 0 0 6px ${accent}25, 0 18px 40px ${accent}38` }}
+                    aria-hidden
+                  />
+                  <EventCard
+                    ev={ev}
+                    isHighlighted={highlightId === ev.id}
+                    className="w-full"
+                    showImageHint
+                  />
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AnimatePresence mode="popLayout">
       {view === "timeline" ? (
-        <motion.div
-          ref={listRef}
-          className="relative grid gap-5 sm:gap-6 md:grid-cols-2"
-        >
+        <motion.div>
           {loading && events.length === 0 ? (
-            <div className="col-span-full flex justify-center">
+            <div className="flex justify-center">
               <div className="w-full max-w-5xl">
                 <SkeletonList count={8} />
               </div>
             </div>
           ) : events.length ? (
-            events.slice(0, visibleCount).map((ev, idx) => (
-              <EventCard
-                key={ev.id}
-                ev={ev}
-                isHighlighted={highlightId === ev.id}
-                className={cn("transition-transform")}
-                showImageHint
-              />
-            ))
+            <TimelineView />
           ) : (
             <motion.div
               initial={{ opacity: 0 }}
@@ -281,13 +363,6 @@ export default function EventList({
             >
               Ничего не найдено. Попробуй изменить фильтры или добавить событие.
             </motion.div>
-          )}
-          {!loading && view === "timeline" && events.length > visibleCount && (
-            <div className="col-span-full flex justify-center">
-              <Button variant="soft" onClick={() => setVisibleCount((n) => n + 20)}>
-                Показать ещё
-              </Button>
-            </div>
           )}
         </motion.div>
       ) : (
