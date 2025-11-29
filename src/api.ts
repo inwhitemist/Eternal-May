@@ -106,6 +106,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ code }),
     }),
+  deleteUser: (userId: string) =>
+    http<{ ok: true; removedEvents?: number; removedCodes?: number }>(`/api/admin/users/${userId}`, {
+      method: "DELETE",
+    }),
   revokeLegendary: (userId: string, code: string) =>
     http<{ ok: true }>(`/api/admin/users/${userId}/legendary/${code}`, {
       method: "DELETE",

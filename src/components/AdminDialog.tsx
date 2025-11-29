@@ -93,6 +93,7 @@ function UsersPanel() {
   const [codes, setCodes] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<{ userId: string; code: string } | null>(null);
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState<AdminUser | null>(null);
 
   useEffect(() => {
     refresh();
@@ -156,6 +157,21 @@ function UsersPanel() {
       setError(e?.message || "Не удалось отозвать коды");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function deleteUser(userId: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.deleteUser(userId);
+      await refresh();
+    } catch (e: any) {
+      const msg = e?.message === "cannot_delete_self" ? "Нельзя удалить свой аккаунт" : e?.message;
+      setError(msg || "Не удалось удалить пользователя");
+    } finally {
+      setLoading(false);
+      setConfirmDeleteUser(null);
     }
   }
 
@@ -269,6 +285,14 @@ function UsersPanel() {
                     {copied === `id:${u.id}` ? <Check size={14} /> : <Copy size={14} />}
                     ID
                   </Button>
+                  <Button
+                    variant="outline"
+                    className="border-red-200 text-red-600 dark:border-red-500/30 dark:text-red-300"
+                    onClick={() => setConfirmDeleteUser(u)}
+                    disabled={loading}
+                  >
+                    <Trash2 size={14} /> Удалить
+                  </Button>
                 </div>
               </div>
 
@@ -334,6 +358,19 @@ function UsersPanel() {
         cancelText="Отмена"
         onConfirm={() => confirmRemove && removeCode(confirmRemove.userId, confirmRemove.code)}
         onCancel={() => setConfirmRemove(null)}
+      />
+      <ConfirmDialog
+        open={!!confirmDeleteUser}
+        title="Удалить пользователя?"
+        description={
+          confirmDeleteUser
+            ? `Будут удалены аккаунт ${confirmDeleteUser.email}, все выданные ему коды и созданные события.`
+            : undefined
+        }
+        confirmText="Удалить"
+        cancelText="Отмена"
+        onConfirm={() => confirmDeleteUser && deleteUser(confirmDeleteUser.id)}
+        onCancel={() => setConfirmDeleteUser(null)}
       />
     </div>
   );

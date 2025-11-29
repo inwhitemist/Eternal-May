@@ -380,6 +380,33 @@ app.post("/api/admin/users/:id/legendary", auth, async (req, res) => {
   }
 });
 
+app.delete("/api/admin/users/:id", auth, async (req, res) => {
+  if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "invalid_id" });
+    }
+    if (id === req.user.uid) {
+      return res.status(400).json({ error: "cannot_delete_self" });
+    }
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ error: "not_found" });
+    const [eventsResult, unlocksResult] = await Promise.all([
+      Event.deleteMany({ userId: id }),
+      LegendaryUnlock.deleteMany({ userId: id }),
+    ]);
+    await user.deleteOne();
+    res.json({
+      ok: true,
+      removedEvents: eventsResult.deletedCount || 0,
+      removedCodes: unlocksResult.deletedCount || 0,
+    });
+  } catch (e) {
+    res.status(400).json({ error: "bad_request" });
+  }
+});
+
 app.delete("/api/admin/users/:id/legendary/:code", auth, async (req, res) => {
   if (req.user.role !== "admin") return res.status(403).json({ error: "forbidden" });
   try {
