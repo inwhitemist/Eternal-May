@@ -305,7 +305,7 @@ export default function EventList({
     return (
       <div className="relative w-full max-w-5xl mx-auto">
         {/* Vertical timeline line */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2 bg-gradient-to-b from-indigo-500/50 via-purple-500/50 to-pink-500/50 dark:from-indigo-400/60 dark:via-purple-400/60 dark:to-pink-400/60" />
+        <div className="absolute left-1/2 top-0 bottom-11 w-0.5 -translate-x-1/2 bg-gradient-to-b from-indigo-500/50 via-purple-500/50 to-pink-500/50 dark:from-indigo-400/60 dark:via-purple-400/60 dark:to-pink-400/60" />
         
         <div className="relative space-y-12">
           {years.map((year, yearIdx) => {
