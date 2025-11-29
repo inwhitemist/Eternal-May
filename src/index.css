@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-
+@import "@heroui/styles"; 
 @plugin 'tailwindcss-animate';
 
 @custom-variant dark (&:is(.dark *));

@@ -1,5 +1,5 @@
 import React, { RefObject, useEffect, useMemo } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { Calendar as CalendarIcon, Edit3, Trash2, Trophy, Image as ImageIcon, MessagesSquare } from "lucide-react";
 import { Button, cn } from "./ui";
 import { SkeletonList } from "./Skeletons";
@@ -8,6 +8,7 @@ import { formatDateHuman, getMonth, MONTHS, getYear } from "../utils/helpers";
 import ElectricBorder from "./ElectricBorder";
 import VanillaTilt from "vanilla-tilt";
 import useDeviceProfile from "../hooks/useDeviceProfile";
+import { Tooltip, TooltipContent } from "@heroui/react";
 
 interface Props {
   events: EventItem[];
@@ -88,7 +89,7 @@ export default function EventList({
         initial={false}
         ref={!isLegendary ? tiltRef as React.RefObject<HTMLButtonElement> : undefined}
         className={cn(
-          "group relative flex h-45 w-full flex-col overflow-hidden text-left rounded-3xl p-5 shadow-lg backdrop-blur-sm transition hover:shadow-2xl focus:outline-hidden focus:ring-2 focus:ring-indigo-300",
+          "group relative flex w-full flex-col overflow-hidden text-left rounded-3xl p-5 shadow-lg backdrop-blur transition hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300",
           !isLegendary && "transform-gpu transition-transform duration-200 ease-out",
           "bg-white/70 dark:bg-white/5",
           !isLegendary && "border border-black/5",
@@ -142,12 +143,28 @@ export default function EventList({
               className="flex items-center gap-2 opacity-90"
               onClick={(e) => e.stopPropagation()}
             >
-              <Button variant="soft" onClick={() => onEdit(ev)}>
-                <Edit3 size={16} />
-              </Button>
-              <Button variant="outline" onClick={() => onDelete(ev)}>
-                <Trash2 size={16} />
-              </Button>
+              <Tooltip delay={0}>
+                <Tooltip.Trigger asChild>
+                  <Button variant="soft" onClick={() => onEdit(ev)}>
+                    <Edit3 size={16} />
+                  </Button>
+                </Tooltip.Trigger>
+                <TooltipContent showArrow className="text-xs text-center">
+                  <Tooltip.Arrow />
+                  Редактировать
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip delay={0}>
+                <Tooltip.Trigger asChild>
+                  <Button variant="outline" onClick={() => onDelete(ev)}>
+                    <Trash2 size={16} />
+                  </Button>
+                </Tooltip.Trigger>
+                <TooltipContent showArrow className="text-xs text-center">
+                  <Tooltip.Arrow />
+                  Удалить
+                </TooltipContent>
+              </Tooltip>
             </div>
           )}
         </div>
@@ -156,20 +173,34 @@ export default function EventList({
             <CalendarIcon size={14} /> {formatDateHuman(ev.date)}
           </span>
           {showImageHint && hasImage && (
-            <span
-              className="inline-flex items-center gap-1 rounded-full bg-indigo-500/15 px-2 py-0.5 text-xs text-indigo-700 dark:text-indigo-200"
-              title="В событии есть изображение"
-            >
-              <ImageIcon size={14} /> Фото
-            </span>
+            <Tooltip delay={0}>
+              <Tooltip.Trigger asChild>
+                <span
+                  className="inline-flex items-center gap-1 rounded-full bg-indigo-500/15 px-2 py-0.5 text-xs text-indigo-700 dark:text-indigo-200"
+                >
+                  <ImageIcon size={14} /> Фото
+                </span>
+              </Tooltip.Trigger>
+              <TooltipContent showArrow className="text-xs text-center">
+                <Tooltip.Arrow />
+                В событии есть изображение
+              </TooltipContent>
+            </Tooltip>
           )}
           {hasChat && (
-            <span
-              className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-200"
-              title="В событии есть переписка"
-            >
-              <MessagesSquare size={14} /> Чат
-            </span>
+            <Tooltip delay={0}>
+              <Tooltip.Trigger asChild>
+                <span
+                  className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-700 dark:text-emerald-200"
+                >
+                  <MessagesSquare size={14} /> Чат
+                </span>
+              </Tooltip.Trigger>
+              <TooltipContent showArrow className="text-xs text-center">
+                <Tooltip.Arrow />
+                В событии есть переписка
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
         {ev.description && (
@@ -292,6 +323,17 @@ export default function EventList({
 
   // Timeline view component
   function TimelineView() {
+    const hoverHandlersRef = React.useRef<Record<string, (active: boolean) => void>>({});
+    const registerHoverTarget = React.useCallback((id: string, handler: (active: boolean) => void) => {
+      hoverHandlersRef.current[id] = handler;
+      return () => {
+        delete hoverHandlersRef.current[id];
+      };
+    }, []);
+    const triggerDotHover = React.useCallback((id: string, active: boolean) => {
+      hoverHandlersRef.current[id]?.(active);
+    }, []);
+
     const sortedEvents = useMemo(() => {
       return [...events].sort((a, b) => {
         const dateA = new Date(a.date).getTime();
@@ -347,10 +389,10 @@ export default function EventList({
         {/* Vertical timeline line with animated glow */}
         <div className="absolute left-1/2 top-0 bottom-11 w-0.5 -translate-x-1/2 z-0 overflow-hidden">
           {/* Base gradient line */}
-          <div className="absolute inset-0 bg-linear-to-b from-indigo-500/50 via-purple-500/50 to-pink-500/50 dark:from-indigo-400/60 dark:via-purple-400/60 dark:to-pink-400/60" />
+          <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/50 via-purple-500/50 to-pink-500/50 dark:from-indigo-400/60 dark:via-purple-400/60 dark:to-pink-400/60" />
           {/* Animated glow pulse */}
           <motion.div
-            className="absolute inset-0 bg-linear-to-b from-indigo-400 via-purple-400 to-pink-400"
+            className="absolute inset-0 bg-gradient-to-b from-indigo-400 via-purple-400 to-pink-400"
             animate={{
               opacity: [0.3, 0.7, 0.3],
             }}
@@ -365,7 +407,7 @@ export default function EventList({
           />
           {/* Moving light effect */}
           <motion.div
-            className="absolute w-full h-32 bg-linear-to-b from-transparent via-white/60 to-transparent"
+            className="absolute w-full h-32 bg-gradient-to-b from-transparent via-white/60 to-transparent"
             animate={{
               y: ["-100%", "200%"],
             }}
@@ -394,9 +436,9 @@ export default function EventList({
                 >
                   <div className="relative">
                     {/* Static glow background */}
-                    <div className="absolute inset-0 bg-linear-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 blur-xl rounded-full" />
-                    <div className="relative rounded-full bg-white/90 dark:bg-neutral-900/90 px-6 py-2 border border-indigo-200/50 dark:border-white/10 shadow-lg backdrop-blur-xs">
-                      <h2 className="text-2xl font-bold bg-linear-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 blur-xl rounded-full" />
+                    <div className="relative rounded-full bg-white/90 dark:bg-neutral-900/90 px-6 py-2 border border-indigo-200/50 dark:border-white/10 shadow-lg backdrop-blur-sm">
+                      <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
                         {year}
                       </h2>
                     </div>
@@ -422,6 +464,7 @@ export default function EventList({
                     const isLegendary = Boolean(ev.code) || ev.tags?.includes("legendary");
                     const accent = isLegendary ? ev.color || "#f5c542" : ev.color || "#8b5cf6";
                     const isHighlighted = highlightId === ev.id;
+                    const dotEntryDelay = (yearIdx * 0.05) + (idx * 0.03) + 0.1;
 
                     return (
                       <motion.div
@@ -473,72 +516,14 @@ export default function EventList({
                             </>
                           )}
                           
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className={cn(
-                              "relative w-4 h-4 rounded-full border-2 border-white dark:border-neutral-900 shadow-lg",
-                              isHighlighted && "ring-4 ring-offset-2 ring-offset-white dark:ring-offset-neutral-900"
-                            )}
-                            style={{
-                              background: accent,
-                              boxShadow: isLegendary
-                                ? `0 0 20px ${accent}80, 0 0 40px ${accent}40, 0 0 60px ${accent}20`
-                                : `0 0 10px ${accent}60`,
-                            }}
-                            whileHover={{
-                              scale: 1.3,
-                              boxShadow: isLegendary
-                                ? `0 0 30px ${accent}90, 0 0 60px ${accent}60`
-                                : `0 0 20px ${accent}80`,
-                            }}
-                            transition={{ 
-                              delay: (yearIdx * 0.05) + (idx * 0.03) + 0.1, 
-                              type: "spring", 
-                              stiffness: 300, 
-                              damping: 20 
-                            }}
-                          >
-                            {/* Pulsing glow ring */}
-                            <motion.div
-                              className="absolute inset-0 rounded-full"
-                              style={{
-                                background: accent,
-                                opacity: 0.4,
-                              }}
-                              animate={{
-                                scale: [1, 1.8, 1],
-                                opacity: [0.4, 0, 0.4],
-                              }}
-                              transition={{
-                                duration: 2,
-                                repeat: Infinity,
-                                ease: "easeOut",
-                              }}
-                            />
-                            {isLegendary && (
-                              <>
-                                <motion.div
-                                  animate={{ scale: [1, 1.5, 1], rotate: [0, 180, 360] }}
-                                  transition={{ repeat: Infinity, duration: 3 }}
-                                  className="absolute inset-0 rounded-full"
-                                  style={{
-                                    background: `conic-gradient(from 0deg, ${accent}40, transparent, ${accent}40)`,
-                                    opacity: 0.5,
-                                  }}
-                                />
-                                <motion.div
-                                  animate={{ scale: [1, 1.3, 1] }}
-                                  transition={{ repeat: Infinity, duration: 2 }}
-                                  className="absolute inset-0 rounded-full"
-                                  style={{
-                                    background: accent,
-                                    opacity: 0.3,
-                                  }}
-                                />
-                              </>
-                            )}
-                          </motion.div>
+                          <TimelineDot
+                            eventId={ev.id}
+                            accent={accent}
+                            isLegendary={isLegendary}
+                            isHighlighted={isHighlighted}
+                            registerHoverTarget={registerHoverTarget}
+                            animationDelay={dotEntryDelay}
+                          />
                         </div>
 
                         {/* Event card with wave effect */}
@@ -569,6 +554,8 @@ export default function EventList({
                                   onSelect={onSelect}
                                   onEdit={onEdit}
                                   onDelete={onDelete}
+                                  onHoverStart={() => triggerDotHover(ev.id, true)}
+                                  onHoverEnd={() => triggerDotHover(ev.id, false)}
                                 />
                               </ElectricBorder>
                             </TiltWrapper>
@@ -582,6 +569,8 @@ export default function EventList({
                               onSelect={onSelect}
                               onEdit={onEdit}
                               onDelete={onDelete}
+                              onHoverStart={() => triggerDotHover(ev.id, true)}
+                              onHoverEnd={() => triggerDotHover(ev.id, false)}
                             />
                           )}
                         </motion.div>
@@ -605,6 +594,161 @@ export default function EventList({
     );
   }
 
+  function TimelineDot({
+    eventId,
+    accent,
+    isLegendary,
+    isHighlighted,
+    animationDelay,
+    registerHoverTarget,
+  }: {
+    eventId: string;
+    accent: string;
+    isLegendary: boolean;
+    isHighlighted: boolean;
+    animationDelay: number;
+    registerHoverTarget: (id: string, handler: (active: boolean) => void) => () => void;
+  }) {
+    const controls = useAnimationControls();
+    const baseDotShadow = React.useMemo(
+      () =>
+        isLegendary
+          ? `0 0 20px ${accent}80, 0 0 40px ${accent}40, 0 0 60px ${accent}20`
+          : `0 0 10px ${accent}60`,
+      [accent, isLegendary]
+    );
+    const hoverDotShadow = React.useMemo(
+      () =>
+        isLegendary
+          ? `0 0 30px ${accent}90, 0 0 60px ${accent}60`
+          : `0 0 20px ${accent}80`,
+      [accent, isLegendary]
+    );
+    const restState = React.useMemo(
+      () => ({
+        scale: 1,
+        boxShadow: baseDotShadow,
+      }),
+      [baseDotShadow]
+    );
+    const activeState = React.useMemo(
+      () => ({
+        scale: 1.3,
+        boxShadow: hoverDotShadow,
+      }),
+      [hoverDotShadow]
+    );
+    const hoverStateRef = React.useRef({ pointer: false, external: false });
+
+    useEffect(() => {
+      controls.set(restState);
+    }, [controls, restState]);
+
+    const syncAnimation = React.useCallback(() => {
+      const nextState =
+        hoverStateRef.current.pointer || hoverStateRef.current.external
+          ? activeState
+          : restState;
+      controls.start(nextState);
+    }, [controls, activeState, restState]);
+
+    const setExternalHover = React.useCallback(
+      (active: boolean) => {
+        hoverStateRef.current.external = active;
+        syncAnimation();
+      },
+      [syncAnimation]
+    );
+
+    const setPointerHover = React.useCallback(
+      (active: boolean) => {
+        hoverStateRef.current.pointer = active;
+        syncAnimation();
+      },
+      [syncAnimation]
+    );
+
+    useEffect(() => {
+      const cleanup = registerHoverTarget(eventId, setExternalHover);
+      return () => {
+        cleanup();
+      };
+    }, [registerHoverTarget, eventId, setExternalHover]);
+
+    return (
+      <motion.div
+        className="inline-flex"
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{
+          delay: animationDelay,
+          type: "spring",
+          stiffness: 300,
+          damping: 20,
+        }}
+      >
+        <motion.div
+          animate={controls}
+          className={cn(
+            "relative w-4 h-4 rounded-full border-2 border-white dark:border-neutral-900 shadow-lg",
+            isHighlighted && "ring-4 ring-offset-2 ring-offset-white dark:ring-offset-neutral-900"
+          )}
+          style={{
+            background: accent,
+            boxShadow: baseDotShadow,
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 300,
+            damping: 20,
+          }}
+          onHoverStart={() => setPointerHover(true)}
+          onHoverEnd={() => setPointerHover(false)}
+        >
+          {/* Pulsing glow ring */}
+          <motion.div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: accent,
+              opacity: 0.4,
+            }}
+            animate={{
+              scale: [1, 1.8, 1],
+              opacity: [0.4, 0, 0.4],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeOut",
+            }}
+          />
+          {isLegendary && (
+            <>
+              <motion.div
+                animate={{ scale: [1, 1.5, 1], rotate: [0, 180, 360] }}
+                transition={{ repeat: Infinity, duration: 3 }}
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background: `conic-gradient(from 0deg, ${accent}40, transparent, ${accent}40)`,
+                  opacity: 0.5,
+                }}
+              />
+              <motion.div
+                animate={{ scale: [1, 1.3, 1] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background: accent,
+                  opacity: 0.3,
+                }}
+              />
+            </>
+          )}
+        </motion.div>
+      </motion.div>
+    );
+  }
+
   // Timeline event card component
   function TimelineEventCard({
     ev,
@@ -615,6 +759,8 @@ export default function EventList({
     onSelect,
     onEdit,
     onDelete,
+    onHoverStart,
+    onHoverEnd,
   }: {
     ev: EventItem;
     accent: string;
@@ -624,6 +770,8 @@ export default function EventList({
     onSelect: (ev: EventItem) => void;
     onEdit: (ev: EventItem) => void;
     onDelete: (ev: EventItem) => void;
+    onHoverStart?: () => void;
+    onHoverEnd?: () => void;
   }) {
     const hasImage = Boolean(ev.imageData);
     const hasChat = Boolean(ev.chatId);
@@ -657,8 +805,12 @@ export default function EventList({
         ref={!isLegendary ? tiltRef : undefined}
         onClick={() => onSelect(ev)}
         initial={false}
+        onMouseEnter={() => onHoverStart?.()}
+        onMouseLeave={() => onHoverEnd?.()}
+        onFocus={() => onHoverStart?.()}
+        onBlur={() => onHoverEnd?.()}
         className={cn(
-          "group relative flex w-full flex-col overflow-hidden text-left rounded-3xl p-5 shadow-lg backdrop-blur-sm transition-all hover:shadow-2xl focus:outline-hidden focus:ring-2 focus:ring-indigo-300",
+          "group relative flex w-full flex-col overflow-hidden text-left rounded-3xl p-5 shadow-lg backdrop-blur transition-all hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300",
           !isLegendary && "transform-gpu transition-transform duration-200 ease-out",
           "bg-white/80 dark:bg-white/10",
           !isLegendary && "border border-black/10 dark:border-white/10"
@@ -696,12 +848,28 @@ export default function EventList({
                 className="flex items-center gap-2 opacity-90"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Button variant="soft" onClick={() => onEdit(ev)}>
-                  <Edit3 size={16} />
-                </Button>
-                <Button variant="outline" onClick={() => onDelete(ev)}>
-                  <Trash2 size={16} />
-                </Button>
+                <Tooltip delay={0}>
+                  <Tooltip.Trigger asChild>
+                    <Button variant="soft" onClick={() => onEdit(ev)}>
+                      <Edit3 size={16} />
+                    </Button>
+                  </Tooltip.Trigger>
+                  <TooltipContent showArrow className="text-xs text-center">
+                    <Tooltip.Arrow />
+                    Редактировать
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip delay={0}>
+                  <Tooltip.Trigger asChild>
+                    <Button variant="outline" onClick={() => onDelete(ev)}>
+                      <Trash2 size={16} />
+                    </Button>
+                  </Tooltip.Trigger>
+                  <TooltipContent showArrow className="text-xs text-center">
+                    <Tooltip.Arrow />
+                    Удалить
+                  </TooltipContent>
+                </Tooltip>
               </div>
             )}
           </div>
@@ -711,20 +879,34 @@ export default function EventList({
               <CalendarIcon size={14} /> {formatDateHuman(ev.date)}
             </span>
             {hasImage && (
-              <span
-                className="inline-flex items-center gap-1 rounded-full bg-indigo-500/15 px-2.5 py-1 text-xs text-indigo-700 dark:text-indigo-200"
-                title="В событии есть изображение"
-              >
-                <ImageIcon size={14} /> Фото
-              </span>
+              <Tooltip delay={0}>
+                <Tooltip.Trigger asChild>
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full bg-indigo-500/15 px-2.5 py-1 text-xs text-indigo-700 dark:text-indigo-200"
+                  >
+                    <ImageIcon size={14} /> Фото
+                  </span>
+                </Tooltip.Trigger>
+                <TooltipContent showArrow className="text-xs text-center">
+                  <Tooltip.Arrow />
+                  В событии есть изображение
+                </TooltipContent>
+              </Tooltip>
             )}
             {hasChat && (
-              <span
-                className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs text-emerald-700 dark:text-emerald-200"
-                title="В событии есть переписка"
-              >
-                <MessagesSquare size={14} /> Чат
-              </span>
+              <Tooltip delay={0}>
+                <Tooltip.Trigger asChild>
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs text-emerald-700 dark:text-emerald-200"
+                  >
+                    <MessagesSquare size={14} /> Чат
+                  </span>
+                </Tooltip.Trigger>
+                <TooltipContent showArrow className="text-xs text-center">
+                  <Tooltip.Arrow />
+                  В событии есть переписка
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
 

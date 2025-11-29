@@ -16,7 +16,7 @@ export function Button({
 }: React.PropsWithChildren<{
   className?: string;
   onClick?: () => void;
-  variant?: "primary" | "ghost" | "outline-solid" | "soft";
+  variant?: "primary" | "ghost" | "outline" | "soft" | "outline-solid";
   type?: "button" | "submit" | "reset";
   disabled?: boolean;
 }>) {

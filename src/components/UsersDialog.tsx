@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { api, AdminUser } from "../api";
 import { Dialog, Button, Input, ConfirmDialog } from "./ui";
+import { Tooltip, TooltipContent } from "@heroui/react";
 
 type SortBy = "email" | "role" | "codes";
 type SortDir = "asc" | "desc";
@@ -268,24 +269,38 @@ export default function UsersDialog({
                       className="flex items-center gap-1 rounded-full bg-black/5 dark:bg-white/10 px-2 py-1 text-xs"
                     >
                       {c}
-                      <button
-                        onClick={() => handleCopy(c, `code:${u.id}:${c}`)}
-                        title="Копировать код"
-                        className="opacity-60 hover:opacity-100"
-                      >
-                        {copied === `code:${u.id}:${c}` ? (
-                          <Check size={12} />
-                        ) : (
-                          <Copy size={12} />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => setConfirmRemove({ userId: u.id, code: c })}
-                        title="Удалить код"
-                        className="opacity-60 hover:opacity-100"
-                      >
-                        <Trash2 size={12} />
-                      </button>
+                      <Tooltip delay={0}>
+                        <Tooltip.Trigger asChild>
+                          <button
+                            onClick={() => handleCopy(c, `code:${u.id}:${c}`)}
+                            className="opacity-60 hover:opacity-100"
+                          >
+                            {copied === `code:${u.id}:${c}` ? (
+                              <Check size={12} />
+                            ) : (
+                              <Copy size={12} />
+                            )}
+                          </button>
+                        </Tooltip.Trigger>
+                        <TooltipContent showArrow className="text-xs text-center">
+                          <Tooltip.Arrow />
+                          Копировать код
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip delay={0}>
+                        <Tooltip.Trigger asChild>
+                          <button
+                            onClick={() => setConfirmRemove({ userId: u.id, code: c })}
+                            className="opacity-60 hover:opacity-100"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </Tooltip.Trigger>
+                        <TooltipContent showArrow className="text-xs text-center">
+                          <Tooltip.Arrow />
+                          Удалить код
+                        </TooltipContent>
+                      </Tooltip>
                     </span>
                   ))}
                 </div>
@@ -341,4 +356,3 @@ export default function UsersDialog({
     </Dialog>
   );
 }
-

@@ -2,6 +2,7 @@ import React from "react";
 import { Filter, Plus, Search, Calendar, GitBranch, Circle } from "lucide-react";
 import { Button, Chip, Input } from "./ui";
 import { MONTHS } from "../utils/helpers";
+import { Tooltip, TooltipContent } from '@heroui/react';
 
 interface Props {
   query: string;
@@ -22,6 +23,15 @@ interface Props {
   setView: (v: "timeline" | "calendar") => void;
 }
 
+function getEventsWord(count: number) {
+  const value = Math.abs(count) % 100;
+  const lastDigit = value % 10;
+  if (value > 10 && value < 20) return "событий";
+  if (lastDigit === 1) return "событие";
+  if (lastDigit >= 2 && lastDigit <= 4) return "события";
+  return "событий";
+}
+
 export default function FiltersPanel({
   query,
   setQuery,
@@ -40,6 +50,8 @@ export default function FiltersPanel({
   view,
   setView,
 }: Props) {
+  const eventsWord = getEventsWord(resultsCount);
+
   return (
     <section className="-mt-6 mb-6 rounded-3xl border border-black/10 bg-white/70 p-4 shadow-xl backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -53,9 +65,17 @@ export default function FiltersPanel({
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-          <Button variant="soft" onClick={resetFilters}>
-            <Filter size={16} />
-          </Button>
+          <Tooltip delay={0}>
+            <Tooltip.Trigger asChild>
+              <Button variant="soft" onClick={resetFilters}>
+                <Filter size={16} />
+              </Button>
+            </Tooltip.Trigger>
+            <TooltipContent showArrow className="text-xs text-center">
+              <Tooltip.Arrow />
+              Сбросить фильтры
+            </TooltipContent>
+          </Tooltip>
           {admin && (
             <Button onClick={onAdd}>
               <Plus size={16} /> Новое
@@ -64,30 +84,40 @@ export default function FiltersPanel({
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 rounded-xl border border-black/10 bg-white/50 p-1 dark:border-white/10 dark:bg-white/5">
-            <button
-              onClick={() => setView("timeline")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                view === "timeline"
-                  ? "bg-linear-to-r from-indigo-500 to-purple-500 text-white shadow-md"
-                  : "text-neutral-600 hover:bg-white/50 dark:text-neutral-300 dark:hover:bg-white/10"
-              }`}
-            >
-              <GitBranch size={14} />
-              Таймлайн
-            </button>
-            <button
-              onClick={() => setView("calendar")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                view === "calendar"
-                  ? "bg-linear-to-r from-indigo-500 to-purple-500 text-white shadow-md"
-                  : "text-neutral-600 hover:bg-white/50 dark:text-neutral-300 dark:hover:bg-white/10"
-              }`}
-            >
-              <Circle size={12} />
-              Компактный
-            </button>
+            <Tooltip delay={0}>
+              <Tooltip.Trigger asChild>
+                <button
+                  onClick={() => setView("timeline")}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                    view === "timeline"
+                      ? "bg-linear-to-r from-indigo-500 to-purple-500 text-white shadow-md"
+                      : "text-neutral-600 hover:bg-white/50 dark:text-neutral-300 dark:hover:bg-white/10"
+                  }`}
+                >
+                  <GitBranch size={14} />
+                  Таймлайн
+                </button>
+              </Tooltip.Trigger>
+              <TooltipContent showArrow className="text-xs text-center"> <Tooltip.Arrow />Просмотр в виде таймлайна<br />Рекомендуется для первого раза</TooltipContent>
+            </Tooltip>
+            <Tooltip delay={0}>
+              <Tooltip.Trigger asChild>
+                <button
+                  onClick={() => setView("calendar")}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                    view === "calendar"
+                      ? "bg-linear-to-r from-indigo-500 to-purple-500 text-white shadow-md"
+                      : "text-neutral-600 hover:bg-white/50 dark:text-neutral-300 dark:hover:bg-white/10"
+                  }`}
+                >
+                  <Circle size={12} />
+                  Список
+                </button>
+              </Tooltip.Trigger>
+              <TooltipContent showArrow className="text-xs text-center"> <Tooltip.Arrow />Компактный вид списком <br />Удобен для быстрой навигации</TooltipContent>
+            </Tooltip>
           </div>
-          <div className="text-xs opacity-70">Найдено {resultsCount} событий</div>
+          <div className="text-xs opacity-70">Найдено {resultsCount} {eventsWord}</div>
         </div>
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-3">

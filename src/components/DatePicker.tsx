@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "./ui";
+import { Tooltip, TooltipContent } from "@heroui/react";
 
 const MONTHS_RU = [
   "Январь",
@@ -189,22 +190,28 @@ export default function DatePicker({
               const isSelected = val === value;
               const isToday = val === todayStr;
               return (
-                <button
-                  key={val + String(inMonth)}
-                  type="button"
-                  onClick={() => { onChange(val); setOpen(false); }}
-                  className={cn(
-                    "h-9 rounded-xl text-sm transition",
-                    inMonth ? "" : "opacity-50",
-                    isSelected
-                      ? "bg-indigo-500 text-white shadow-sm"
-                      : "hover:bg-black/5 dark:hover:bg-white/10",
-                  )}
-                  aria-current={isToday ? "date" : undefined}
-                  title={d.toLocaleDateString("ru-RU")}
-                >
-                  {d.getDate()}
-                </button>
+                <Tooltip key={val + String(inMonth)} delay={0}>
+                  <Tooltip.Trigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => { onChange(val); setOpen(false); }}
+                      className={cn(
+                        "h-9 rounded-xl text-sm transition",
+                        inMonth ? "" : "opacity-50",
+                        isSelected
+                          ? "bg-indigo-500 text-white shadow-sm"
+                          : "hover:bg-black/5 dark:hover:bg-white/10",
+                      )}
+                      aria-current={isToday ? "date" : undefined}
+                    >
+                      {d.getDate()}
+                    </button>
+                  </Tooltip.Trigger>
+                  <TooltipContent showArrow className="text-xs text-center">
+                    <Tooltip.Arrow />
+                    {d.toLocaleDateString("ru-RU")}
+                  </TooltipContent>
+                </Tooltip>
               );
             })}
           </div>
