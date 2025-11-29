@@ -9,7 +9,7 @@ interface Props {
   onClose: () => void;
   onSuccess: () => void;
   login: (email: string, password: string) => Promise<any>;
-  register: (email: string, password: string, invite?: string) => Promise<any>;
+  register: (email: string, password: string, accessCode: string, invite?: string) => Promise<any>;
 }
 
 export default function AuthDialog({
@@ -20,7 +20,7 @@ export default function AuthDialog({
   login,
   register,
 }: Props) {
-  const [form, setForm] = useState({ email: "", password: "", invite: "" });
+  const [form, setForm] = useState({ email: "", password: "", accessCode: "", adminInvite: "" });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,13 +30,22 @@ export default function AuthDialog({
   }, [mode, open]);
 
   async function submit() {
+    if (mode === "register" && !form.accessCode.trim()) {
+      setError("Введите инвайт-код для регистрации");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       if (mode === "login") {
         await login(form.email, form.password);
       } else {
-        await register(form.email, form.password, form.invite || undefined);
+        await register(
+          form.email,
+          form.password,
+          form.accessCode.trim(),
+          form.adminInvite.trim() ? form.adminInvite.trim() : undefined
+        );
       }
       onSuccess();
       onClose();
@@ -103,14 +112,17 @@ export default function AuthDialog({
           </div>
 
           {mode === "register" && (
-            <div className="grid gap-1">
-              <label className="text-xs opacity-70">Инвайт-код (для админов)</label>
-              <Input
-                placeholder="необязательно"
-                value={form.invite}
-                onChange={(e) => setForm({ ...form, invite: e.target.value })}
-              />
-            </div>
+            <>
+              <div className="grid gap-1">
+                <label className="text-xs opacity-70">Инвайт-код (обязателен)</label>
+                <Input
+                  placeholder="Введите код доступа"
+                  value={form.accessCode}
+                  onChange={(e) => setForm({ ...form, accessCode: e.target.value })}
+                />
+                <p className="text-[11px] opacity-60">Получите код у автора проекта</p>
+              </div>
+            </>
           )}
 
           {error && (
@@ -149,7 +161,7 @@ export default function AuthDialog({
             </button>
           </div>
 
-          <Button onClick={submit} disabled={loading}>
+          <Button onClick={submit} disabled={loading || (mode === "register" && !form.accessCode.trim())}>
             {loading ? (
               "..."
             ) : mode === "login" ? (

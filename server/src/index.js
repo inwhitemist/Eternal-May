@@ -14,6 +14,7 @@ import { connectDB, User, Event, LegendaryUnlock, Chat, ChatMessage } from "./db
 const app = express();
 const PORT = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET;
+const REGISTRATION_INVITE_CODE = process.env.REGISTRATION_INVITE_CODE;
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:5173";
 const CLIENT_ORIGIN_PATH = process.env.CLIENT_ORIGIN_PATH || "";
 
@@ -27,6 +28,7 @@ const authLimiter = rateLimit({
 
 if (!JWT_SECRET) throw new Error("JWT_SECRET is required");
 if (!process.env.MONGODB_URI) throw new Error("MONGODB_URI is required");
+if (!REGISTRATION_INVITE_CODE) throw new Error("REGISTRATION_INVITE_CODE is required");
 
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(morgan("dev"));
@@ -68,7 +70,12 @@ function auth(req, res, next) {
   catch { return res.status(401).json({ error: "invalid_token" }); }
 }
 
-const registerSchema = z.object({ email: z.string().email(), password: z.string().min(6), invite: z.string().min(1).optional() });
+const registerSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  accessCode: z.string().trim().min(1),
+  invite: z.string().trim().min(1).optional(),
+});
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(6) });
 const eventSchema = z.object({
   id: z.string().optional(),
@@ -107,7 +114,10 @@ app.get("/api/health", (_, res) => res.json({ ok: true }));
 
 app.post("/api/auth/register", authLimiter, async (req, res) => {
   try {
-    const { email, password, invite } = registerSchema.parse(req.body);
+    const { email, password, invite, accessCode } = registerSchema.parse(req.body);
+    if (accessCode !== REGISTRATION_INVITE_CODE) {
+      return res.status(403).json({ error: "invalid_access_code" });
+    }
     const exists = await User.findOne({ email }); if (exists) return res.status(409).json({ error: "email_taken" });
     const passwordHash = await bcrypt.hash(password, 10);
     let role = "user";
