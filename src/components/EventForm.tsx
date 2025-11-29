@@ -250,7 +250,7 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
                 <img
                   src={imageData}
                   alt="Превью"
-                  className="max-h-28 max-w-full object-contain rounded-lg shadow"
+                  className="max-h-28 max-w-full object-contain rounded-lg shadow-sm"
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center w-full h-full gap-2 py-2 text-indigo-500 dark:text-indigo-300">
@@ -275,7 +275,7 @@ export default function EventForm({ initial, onSubmit, onCancel }: Props) {
           </div>
         </div>
       </div>
-      <div className="sticky bottom-0 -mx-4 mt-3 flex justify-end gap-2 border-t border-black/10 bg-white/90 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-neutral-900/90 rounded-b-2xl">
+      <div className="sticky bottom-0 -mx-4 mt-3 flex justify-end gap-2 border-t border-black/10 bg-white/90 px-4 py-3 backdrop-blur-sm dark:border-white/10 dark:bg-neutral-900/90 rounded-b-2xl">
         <Button variant="outline" onClick={onCancel} type="button">
           <X size={16} /> Отмена
         </Button>

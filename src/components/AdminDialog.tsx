@@ -69,7 +69,7 @@ function TabButton({ active, onClick, children }: React.PropsWithChildren<{ acti
       onClick={onClick}
       className={cn(
         "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition",
-        active ? "bg-white shadow dark:bg-neutral-800" : "hover:bg-black/10 dark:hover:bg-white/20"
+        active ? "bg-white shadow-sm dark:bg-neutral-800" : "hover:bg-black/10 dark:hover:bg-white/20"
       )}
     >
       {children}
@@ -212,13 +212,13 @@ function UsersPanel() {
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Поиск по email, id, коду" className="pl-8" />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant={roleFilter === "all" ? "soft" : "outline"} onClick={() => setRoleFilter("all")}>
+          <Button variant={roleFilter === "all" ? "soft" : "outline-solid"} onClick={() => setRoleFilter("all")}>
             Все
           </Button>
-          <Button variant={roleFilter === "admin" ? "soft" : "outline"} onClick={() => setRoleFilter("admin")}>
+          <Button variant={roleFilter === "admin" ? "soft" : "outline-solid"} onClick={() => setRoleFilter("admin")}>
             Админы
           </Button>
-          <Button variant={roleFilter === "user" ? "soft" : "outline"} onClick={() => setRoleFilter("user")}>
+          <Button variant={roleFilter === "user" ? "soft" : "outline-solid"} onClick={() => setRoleFilter("user")}>
             Пользователи
           </Button>
         </div>

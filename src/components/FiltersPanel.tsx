@@ -41,7 +41,7 @@ export default function FiltersPanel({
   setView,
 }: Props) {
   return (
-    <section className="-mt-6 mb-6 rounded-3xl border border-black/10 bg-white/70 p-4 shadow-xl backdrop-blur dark:border-white/10 dark:bg-white/5">
+    <section className="-mt-6 mb-6 rounded-3xl border border-black/10 bg-white/70 p-4 shadow-xl backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-1 items-center gap-2">
           <div className="relative w-full">
@@ -68,7 +68,7 @@ export default function FiltersPanel({
               onClick={() => setView("timeline")}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
                 view === "timeline"
-                  ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md"
+                  ? "bg-linear-to-r from-indigo-500 to-purple-500 text-white shadow-md"
                   : "text-neutral-600 hover:bg-white/50 dark:text-neutral-300 dark:hover:bg-white/10"
               }`}
             >
@@ -79,7 +79,7 @@ export default function FiltersPanel({
               onClick={() => setView("calendar")}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
                 view === "calendar"
-                  ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md"
+                  ? "bg-linear-to-r from-indigo-500 to-purple-500 text-white shadow-md"
                   : "text-neutral-600 hover:bg-white/50 dark:text-neutral-300 dark:hover:bg-white/10"
               }`}
             >

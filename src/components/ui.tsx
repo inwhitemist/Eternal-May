@@ -16,15 +16,15 @@ export function Button({
 }: React.PropsWithChildren<{
   className?: string;
   onClick?: () => void;
-  variant?: "primary" | "ghost" | "outline" | "soft";
+  variant?: "primary" | "ghost" | "outline-solid" | "soft";
   type?: "button" | "submit" | "reset";
   disabled?: boolean;
 }>) {
   const base =
-    "inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium shadow-sm transition active:scale-[.98]";
+    "inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium shadow-xs transition active:scale-[.98]";
   const variants: Record<string, string> = {
     primary:
-      "bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white hover:opacity-95",
+      "bg-linear-to-br from-indigo-500 to-fuchsia-500 text-white hover:opacity-95",
     ghost:
       "bg-transparent hover:bg-white/10 text-foreground dark:text-white border border-transparent",
     outline:
@@ -64,7 +64,7 @@ export function Chip({
         "px-3 py-1 rounded-full text-xs border transition",
         selected
           ? "bg-indigo-500/90 text-white border-transparent"
-          : "bg-white/70 dark:bg-white/5 backdrop-blur border-black/10 dark:border-white/10 hover:bg-white"
+          : "bg-white/70 dark:bg-white/5 backdrop-blur-sm border-black/10 dark:border-white/10 hover:bg-white"
       )}
     >
       {label}
@@ -77,7 +77,7 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={cn(
-        "w-full rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/5 px-3 py-2 text-sm outline-none",
+        "w-full rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/5 px-3 py-2 text-sm outline-hidden",
         "focus:ring-2 focus:ring-indigo-400/60",
         props.className
       )}
@@ -90,7 +90,7 @@ export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
     <textarea
       {...props}
       className={cn(
-        "w-full rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/5 px-3 py-2 text-sm outline-none",
+        "w-full rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/5 px-3 py-2 text-sm outline-hidden",
         "focus:ring-2 focus:ring-indigo-400/60",
         props.className
       )}
@@ -116,7 +116,7 @@ export function Dialog({
   return (
     <div className="fixed inset-0 z-50 grid place-items-center">
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 backdrop-blur-xs"
         onClick={onClose}
       />
       <motion.div

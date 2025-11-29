@@ -102,7 +102,7 @@ export default function DatePicker({
         onClick={() => setOpen((v) => !v)}
         className={cn(
           "w-full rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-white/5 px-3 py-2 text-sm text-left",
-          "focus:outline-none focus:ring-2 focus:ring-indigo-400/60"
+          "focus:outline-hidden focus:ring-2 focus:ring-indigo-400/60"
         )}
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -111,7 +111,7 @@ export default function DatePicker({
       </button>
 
       {open && (
-        <div className="absolute z-10 mt-2 w-[22rem] rounded-2xl border border-black/10 bg-white/95 p-3 shadow-2xl backdrop-blur dark:border-white/10 dark:bg-neutral-900/95">
+        <div className="absolute z-10 mt-2 w-88 rounded-2xl border border-black/10 bg-white/95 p-3 shadow-2xl backdrop-blur-sm dark:border-white/10 dark:bg-neutral-900/95">
           <div className="flex items-center justify-between gap-2 px-1 pb-2">
             <button
               type="button"
@@ -131,8 +131,8 @@ export default function DatePicker({
               <div className="relative">
                 <select
                   className={cn(
-                    "appearance-none rounded-xl border border-black/10 bg-white px-3 py-2 pr-8 text-sm text-neutral-900 shadow-sm",
-                    "focus:outline-none focus:ring-2 focus:ring-indigo-400/60",
+                    "appearance-none rounded-xl border border-black/10 bg-white px-3 py-2 pr-8 text-sm text-neutral-900 shadow-xs",
+                    "focus:outline-hidden focus:ring-2 focus:ring-indigo-400/60",
                     "dark:border-white/10 dark:bg-neutral-900 dark:text-white"
                   )}
                   value={viewMonth}
@@ -147,8 +147,8 @@ export default function DatePicker({
               <div className="relative">
                 <select
                   className={cn(
-                    "appearance-none rounded-xl border border-black/10 bg-white px-3 py-2 pr-8 text-sm text-neutral-900 shadow-sm",
-                    "focus:outline-none focus:ring-2 focus:ring-indigo-400/60",
+                    "appearance-none rounded-xl border border-black/10 bg-white px-3 py-2 pr-8 text-sm text-neutral-900 shadow-xs",
+                    "focus:outline-hidden focus:ring-2 focus:ring-indigo-400/60",
                     "dark:border-white/10 dark:bg-neutral-900 dark:text-white"
                   )}
                   value={viewYear}
@@ -197,7 +197,7 @@ export default function DatePicker({
                     "h-9 rounded-xl text-sm transition",
                     inMonth ? "" : "opacity-50",
                     isSelected
-                      ? "bg-indigo-500 text-white shadow"
+                      ? "bg-indigo-500 text-white shadow-sm"
                       : "hover:bg-black/5 dark:hover:bg-white/10",
                   )}
                   aria-current={isToday ? "date" : undefined}

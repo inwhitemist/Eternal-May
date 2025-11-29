@@ -4,14 +4,14 @@ import React from "react";
 export function SkeletonCard() {
   return (
     <div
-      className="group relative flex h-45 w-full flex-col overflow-hidden rounded-3xl border border-black/10 bg-white/70 p-5 shadow-lg backdrop-blur dark:border-white/10 dark:bg-white/5"
+      className="group relative flex h-45 w-full flex-col overflow-hidden rounded-3xl border border-black/10 bg-white/70 p-5 shadow-lg backdrop-blur-sm dark:border-white/10 dark:bg-white/5"
       style={{ contentVisibility: "auto" as any, containIntrinsicSize: "280px 180px" }}
       aria-hidden
     >
       {/* Верхний акцент-бар как у карточек */}
       <div className="absolute inset-x-4 top-0 h-1 rounded-b-full bg-black/10 dark:bg-white/10" />
 
-      <div className="relative z-[1] flex h-full flex-col">
+      <div className="relative z-1 flex h-full flex-col">
         {/* Заголовок с кружком под иконку */}
         <div className="flex items-center gap-2">
           <div className="h-4 w-4 rounded-full bg-black/10 dark:bg-white/10" />
@@ -38,7 +38,7 @@ export function SkeletonCard() {
       </div>
 
       {/* Лёгкая пульсация, без сложного анимированного шиммера */}
-      <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-transparent via-black/5 to-transparent" />
+      <div className="absolute inset-0 animate-pulse bg-linear-to-r from-transparent via-black/5 to-transparent" />
     </div>
   );
 }

@@ -179,19 +179,19 @@ export default function UsersDialog({
           </div>
           <div className="flex items-center gap-2">
             <Button
-              variant={roleFilter === "all" ? "soft" : "outline"}
+              variant={roleFilter === "all" ? "soft" : "outline-solid"}
               onClick={() => setRoleFilter("all")}
             >
               Все
             </Button>
             <Button
-              variant={roleFilter === "admin" ? "soft" : "outline"}
+              variant={roleFilter === "admin" ? "soft" : "outline-solid"}
               onClick={() => setRoleFilter("admin")}
             >
               Админы
             </Button>
             <Button
-              variant={roleFilter === "user" ? "soft" : "outline"}
+              variant={roleFilter === "user" ? "soft" : "outline-solid"}
               onClick={() => setRoleFilter("user")}
             >
               Пользователи

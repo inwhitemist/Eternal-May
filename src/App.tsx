@@ -424,7 +424,7 @@ export default function LifeTimelineApp() {
     LOADING_TIPS[loadingTipIndex] ?? LOADING_TIPS[0];
 
   return (
-    <div className="min-h-dvh bg-gradient-to-br from-indigo-50 via-white to-rose-50 text-neutral-900 transition dark:from-[#0B0B12] dark:via-[#0B0B12] dark:to-[#14121B] dark:text-white">
+    <div className="min-h-dvh bg-linear-to-br from-indigo-50 via-white to-rose-50 text-neutral-900 transition dark:from-[#0B0B12] dark:via-[#0B0B12] dark:to-[#14121B] dark:text-white">
                   <style>{`
                     :root {
                       scrollbar-color: #a78bfa #f8fafc;
@@ -468,7 +468,7 @@ export default function LifeTimelineApp() {
                   `}</style>
 
       {/* Hero */}
-      <header className="relative isolate min-h-[100svh] overflow-hidden">
+      <header className="relative isolate min-h-svh overflow-hidden">
         <ParallaxBackground />
         <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
           <FloatingLines
@@ -482,12 +482,12 @@ export default function LifeTimelineApp() {
             parallaxStrength={0.1}
           />
         </div>
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-32 bg-gradient-to-b from-transparent via-white/70 to-white dark:via-neutral-900/60 dark:to-neutral-950" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-32 bg-linear-to-b from-transparent via-white/70 to-white dark:via-neutral-900/60 dark:to-neutral-950" />
         {/*<AuroraLayer /> */}
         <div className="pointer-events-none absolute inset-0 -z-20 opacity-40 [background:radial-gradient(600px_200px_at_10%_-10%,#a78bfa,transparent_60%),radial-gradient(600px_200px_at_90%_-10%,#f472b6,transparent_60%)]" />
         <div className="absolute inset-x-0 top-0 z-20">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs backdrop-blur dark:border-white/10 dark:bg-white/10 cursor-default">
+            <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs backdrop-blur-sm dark:border-white/10 dark:bg-white/10 cursor-default">
               <Sparkles size={14} /> Eternal May
             </div>
             <div className="relative flex items-center gap-2">
@@ -499,7 +499,7 @@ export default function LifeTimelineApp() {
                   <Settings size={16} /> Настройки
                 </Button>
                 {settingsOpen && (
-                  <div className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-2xl border border-black/10 bg-white/95 p-2 shadow-xl backdrop-blur dark:border-white/10 dark:bg-neutral-900/95">
+                  <div className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-2xl border border-black/10 bg-white/95 p-2 shadow-xl backdrop-blur-sm dark:border-white/10 dark:bg-neutral-900/95">
                     <button
                       className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10"
                       onClick={() =>
@@ -577,7 +577,7 @@ export default function LifeTimelineApp() {
           </div>
         </div>
 
-        <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-6xl flex-col items-center justify-center px-4 text-center">
+        <div className="relative z-10 mx-auto flex min-h-svh max-w-6xl flex-col items-center justify-center px-4 text-center">
           <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -629,7 +629,7 @@ export default function LifeTimelineApp() {
             <div className="pointer-events-none absolute inset-x-0 bottom-6 z-10 flex items-center justify-center">
               
               <Button
-                className="pointer-events-auto backdrop-blur"
+                className="pointer-events-auto backdrop-blur-sm"
                 variant="soft"
                 onClick={scrollToTimeline}
               >
@@ -659,19 +659,19 @@ export default function LifeTimelineApp() {
           <div
             className="absolute left-1/2 top-0 h-[160%] w-[200%] -translate-x-1/2 [background:radial-gradient(ellipse_at_20%_-10%,rgba(167,139,250,0.35),transparent_55%),radial-gradient(ellipse_at_80%_-5%,rgba(244,114,182,0.28),transparent_55%)] dark:[background:radial-gradient(ellipse_at_15%_-10%,rgba(124,115,255,0.25),transparent_60%),radial-gradient(ellipse_at_85%_-5%,rgba(236,72,153,0.25),transparent_60%)]"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-white/95 via-white to-white dark:from-[#0b0b12]/95 dark:via-[#090910] dark:to-[#07070c]" />
+          <div className="absolute inset-0 bg-linear-to-b from-white/95 via-white to-white dark:from-[#0b0b12]/95 dark:via-[#090910] dark:to-[#07070c]" />
         </div>
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-32 overflow-hidden"
         >
           <div
-            className="absolute left-1/2 top-0 h-32 w-[140%] -translate-x-1/2 -translate-y-1/2 bg-gradient-to-b from-transparent via-white/80 to-white dark:via-neutral-950/80 dark:to-neutral-950 sm:w-[160%]"
+            className="absolute left-1/2 top-0 h-32 w-[140%] -translate-x-1/2 -translate-y-1/2 bg-linear-to-b from-transparent via-white/80 to-white dark:via-neutral-950/80 dark:to-neutral-950 sm:w-[160%]"
           />
         </div>
         {!logged ? (
           <div className="mx-auto max-w-2xl">
-            <div className="rounded-3xl border border-black/10 bg-white/70 p-6 text-center shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+            <div className="rounded-3xl border border-black/10 bg-white/70 p-6 text-center shadow-xs backdrop-blur-sm dark:border-white/10 dark:bg-white/5">
               <div className="mx-auto mb-3 inline-flex items-center justify-center gap-2 text-lg font-semibold">
                 <AlertCircle className="text-yellow-500" size={18} />
                 Доступ к событиям только для авторизованных
@@ -734,7 +734,7 @@ export default function LifeTimelineApp() {
                 <Button variant="soft" onClick={prevYear}>
                   <ChevronLeft size={16} /> Предыдущий
                 </Button>
-                <div className="rounded-full border border-black/10 bg-white/70 px-4 py-1 text-sm shadow-sm dark:border-white/10 dark:bg-white/10">
+                <div className="rounded-full border border-black/10 bg-white/70 px-4 py-1 text-sm shadow-xs dark:border-white/10 dark:bg-white/10">
                   {year}
                 </div>
                 <Button variant="soft" onClick={nextYear}>
@@ -907,7 +907,7 @@ export default function LifeTimelineApp() {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.3 }}
-        className="fixed inset-0 z-[120] overflow-hidden bg-gradient-to-br from-white/70 via-white/80 to-rose-50/80 backdrop-blur-2xl dark:from-[#03030a]/95 dark:via-[#090512]/95 dark:to-[#140c1f]/95"
+        className="fixed inset-0 z-120 overflow-hidden bg-linear-to-br from-white/70 via-white/80 to-rose-50/80 backdrop-blur-2xl dark:from-[#03030a]/95 dark:via-[#090512]/95 dark:to-[#140c1f]/95"
       >
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -left-24 top-10 h-64 w-64 rounded-full bg-indigo-200/60 blur-3xl dark:bg-indigo-700/30" />
@@ -935,7 +935,7 @@ export default function LifeTimelineApp() {
               animate={{ rotate: -360 }}
               transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
             />
-            <span className="absolute inset-6 rounded-full bg-gradient-to-br from-indigo-400/35 to-rose-400/35 blur-xl" />
+            <span className="absolute inset-6 rounded-full bg-linear-to-br from-indigo-400/35 to-rose-400/35 blur-xl" />
             <Loader2
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600 dark:text-rose-100"
               size={30}
@@ -959,7 +959,7 @@ export default function LifeTimelineApp() {
               initial={{ width: "0%" }}
               animate={{ width: "100%" }}
               transition={{ duration: 2, ease: "easeInOut", repeat: Infinity }}
-              className="block h-full rounded-full bg-gradient-to-r from-indigo-400 via-violet-400 to-rose-400"
+              className="block h-full rounded-full bg-linear-to-r from-indigo-400 via-violet-400 to-rose-400"
             />
           </div>
         </motion.div>

@@ -149,7 +149,7 @@ export default function DetailDialog({
       return (
         <div
           key={m.id}
-          className={`rounded-2xl border px-4 py-3 text-sm shadow-sm backdrop-blur-sm transition hover:shadow-md ${bubbleClass}`}
+          className={`rounded-2xl border px-4 py-3 text-sm shadow-xs backdrop-blur-xs transition hover:shadow-md ${bubbleClass}`}
           style={{ wordBreak: "break-word", overflowWrap: "anywhere", maxWidth: "100%" }}
         >
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-black/60 dark:text-white/60">
@@ -181,7 +181,7 @@ export default function DetailDialog({
                 <button
                   type="button"
                   key={`${m.id}-${idx}`}
-                  className="group relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-black/5 shadow-inner transition hover:border-emerald-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+                  className="group relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-black/5 shadow-inner transition hover:border-emerald-500/40 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500/50"
                   onClick={() => onImagePreview(url)}
                 >
                   <img
@@ -274,7 +274,7 @@ export default function DetailDialog({
           <CalendarIcon className="-mt-0.5 inline" size={14} /> {formatDateHuman(event.date)}
         </div>
         {event.imageData && (
-          <div className="overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 flex-shrink-0">
+          <div className="overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 shrink-0">
             <img
               src={event.imageData}
               alt={event.title}
@@ -345,7 +345,7 @@ export default function DetailDialog({
                       <div className="pointer-events-none sticky bottom-3 flex justify-end pr-1">
                         <Button
                           variant="ghost"
-                          className="pointer-events-auto rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-emerald-700 shadow-lg ring-1 ring-emerald-500/30 backdrop-blur-sm dark:bg-neutral-900/90 dark:text-emerald-100"
+                          className="pointer-events-auto rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-emerald-700 shadow-lg ring-1 ring-emerald-500/30 backdrop-blur-xs dark:bg-neutral-900/90 dark:text-emerald-100"
                           onClick={scrollChatToTop}
                         >
                           К началу
