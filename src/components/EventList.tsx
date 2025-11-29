@@ -547,10 +547,7 @@ export default function EventList({
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: (yearIdx * 0.05) + (idx * 0.03) + 0.15 }}
-                          whileHover={{
-                            y: -4,
-                            transition: { type: "spring", stiffness: 400, damping: 25 },
-                          }}
+                        
                         >
                           {isLegendary ? (
                             <TiltWrapper>
