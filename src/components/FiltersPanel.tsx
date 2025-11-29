@@ -1,5 +1,5 @@
 import React from "react";
-import { Filter, Plus, Search, Calendar, GitBranch } from "lucide-react";
+import { Filter, Plus, Search, Calendar, GitBranch, Circle } from "lucide-react";
 import { Button, Chip, Input } from "./ui";
 import { MONTHS } from "../utils/helpers";
 
@@ -73,7 +73,7 @@ export default function FiltersPanel({
               }`}
             >
               <GitBranch size={14} />
-              Timeline
+              Таймлайн
             </button>
             <button
               onClick={() => setView("calendar")}
@@ -83,8 +83,8 @@ export default function FiltersPanel({
                   : "text-neutral-600 hover:bg-white/50 dark:text-neutral-300 dark:hover:bg-white/10"
               }`}
             >
-              <Calendar size={14} />
-              Calendar
+              <Circle size={12} />
+              Компактный
             </button>
           </div>
           <div className="text-xs opacity-70">Найдено {resultsCount} событий</div>

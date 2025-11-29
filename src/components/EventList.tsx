@@ -12,7 +12,7 @@ import useDeviceProfile from "../hooks/useDeviceProfile";
 interface Props {
   events: EventItem[];
   view: "timeline" | "calendar";
-  listRef: RefObject<HTMLDivElement>;
+  listRef: RefObject<HTMLDivElement | null>;
   admin: boolean;
   onEdit: (ev: EventItem) => void;
   onDelete: (ev: EventItem) => void;
@@ -57,7 +57,8 @@ export default function EventList({
     const hasImage = Boolean(ev.imageData);
     const hasChat = Boolean(ev.chatId);
     // Initialize VanillaTilt on the card element instead of CSS hover scale
-    const tiltRef = React.useRef<HTMLButtonElement>(null);
+    // For legendary cards, tilt should be applied to the wrapper, not the inner button
+    const tiltRef = React.useRef<HTMLDivElement | HTMLButtonElement>(null);
     useEffect(() => {
       if (disableTilt || !tiltRef.current) return;
       const el = tiltRef.current as any;
@@ -85,7 +86,7 @@ export default function EventList({
         tabIndex={0}
         onClick={() => onSelect(ev)}
         initial={false}
-        ref={tiltRef}
+        ref={!isLegendary ? tiltRef as React.RefObject<HTMLButtonElement> : undefined}
         className={cn(
           "group relative flex h-45 w-full flex-col overflow-hidden text-left rounded-3xl p-5 shadow-lg backdrop-blur transition hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-indigo-300",
           !isLegendary && "transform-gpu transition-transform duration-200 ease-out",
@@ -198,17 +199,22 @@ export default function EventList({
     );
 
     return isLegendary ? (
-      <ElectricBorder
-        color={accent}
-        thickness={2}
-        speed={1}
-        chaos={0.5}
-        reducedMotion={reduceLegendaryMotion}
-        style={{ borderRadius: 24, width: '100%' }}
+      <div
+        ref={tiltRef as React.RefObject<HTMLDivElement>}
         className="block w-full rounded-3xl overflow-visible transform-gpu transition-transform duration-200 ease-out"
       >
-        {card}
-      </ElectricBorder>
+        <ElectricBorder
+          color={accent}
+          thickness={2}
+          speed={1}
+          chaos={0.5}
+          reducedMotion={reduceLegendaryMotion}
+          style={{ borderRadius: 24, width: '100%' }}
+          className="block w-full rounded-3xl overflow-visible"
+        >
+          {card}
+        </ElectricBorder>
+      </div>
     ) : (
       card
     );
@@ -246,6 +252,40 @@ export default function EventList({
             </div>
           </div>
         ))}
+      </div>
+    );
+  }
+
+  // Tilt wrapper component for legendary cards
+  function TiltWrapper({ children }: { children: React.ReactNode }) {
+    const tiltRef = React.useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      if (disableTilt || !tiltRef.current) return;
+      const el = tiltRef.current as any;
+      VanillaTilt.init(el, {
+        max: 6,
+        speed: 300,
+        scale: 1.02,
+        perspective: 1000,
+        glare: false,
+        gyroscope: false,
+        easing: "cubic-bezier(.03,.98,.52,.99)",
+        reset: true,
+        transition: true,
+      });
+      return () => {
+        try {
+          el?.vanillaTilt?.destroy?.();
+        } catch {}
+      };
+    }, [disableTilt]);
+
+    return (
+      <div
+        ref={tiltRef}
+        className="block w-full rounded-3xl overflow-visible transform-gpu transition-transform duration-200 ease-out"
+      >
+        {children}
       </div>
     );
   }
@@ -304,24 +344,58 @@ export default function EventList({
 
     return (
       <div className="relative w-full max-w-5xl mx-auto">
-        {/* Vertical timeline line */}
-        <div className="absolute left-1/2 top-0 bottom-11 w-0.5 -translate-x-1/2 bg-gradient-to-b from-indigo-500/50 via-purple-500/50 to-pink-500/50 dark:from-indigo-400/60 dark:via-purple-400/60 dark:to-pink-400/60" />
+        {/* Vertical timeline line with animated glow */}
+        <div className="absolute left-1/2 top-0 bottom-11 w-0.5 -translate-x-1/2 z-0 overflow-hidden">
+          {/* Base gradient line */}
+          <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/50 via-purple-500/50 to-pink-500/50 dark:from-indigo-400/60 dark:via-purple-400/60 dark:to-pink-400/60" />
+          {/* Animated glow pulse */}
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-b from-indigo-400 via-purple-400 to-pink-400"
+            animate={{
+              opacity: [0.3, 0.7, 0.3],
+            }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            style={{
+              filter: "blur(8px)",
+            }}
+          />
+          {/* Moving light effect */}
+          <motion.div
+            className="absolute w-full h-32 bg-gradient-to-b from-transparent via-white/60 to-transparent"
+            animate={{
+              y: ["-100%", "200%"],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+            style={{
+              filter: "blur(4px)",
+            }}
+          />
+        </div>
         
         <div className="relative space-y-12">
           {years.map((year, yearIdx) => {
             const yearEvents = groupedByYear[year];
             return (
               <div key={year} className="relative">
-                {/* Year label */}
+                {/* Year label with enhanced effects */}
                 <motion.div
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: yearIdx * 0.1 }}
-                  className="sticky top-8 z-10 mb-8 flex items-center justify-center"
+                  className="sticky top-8 z-30 mb-8 flex items-center justify-center"
                 >
                   <div className="relative">
+                    {/* Static glow background */}
                     <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 blur-xl rounded-full" />
-                    <div className="relative rounded-full bg-white/90 dark:bg-neutral-900/90 px-6 py-2 border border-indigo-200/50 dark:border-indigo-800/50 shadow-lg backdrop-blur-sm">
+                    <div className="relative rounded-full bg-white/90 dark:bg-neutral-900/90 px-6 py-2 border border-indigo-200/50 dark:border-white/10 shadow-lg backdrop-blur-sm">
                       <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
                         {year}
                       </h2>
@@ -329,8 +403,20 @@ export default function EventList({
                   </div>
                 </motion.div>
 
-                {/* Events for this year */}
-                <div className="space-y-8">
+                {/* Events for this year with background glow */}
+                <div className="relative space-y-8">
+                  {/* Subtle background glow for year section */}
+                  <motion.div
+                    className="absolute inset-0 -z-10 rounded-3xl pointer-events-none"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: yearIdx * 0.1 + 0.2 }}
+                    style={{
+                      background: `radial-gradient(ellipse at center, rgba(139, 92, 246, 0.05), transparent 60%)`,
+                      filter: "blur(40px)",
+                    }}
+                  />
+                  
                   {yearEvents.map((ev, idx) => {
                     const isLeft = idx % 2 === 0;
                     const isLegendary = Boolean(ev.code) || ev.tags?.includes("legendary");
@@ -348,12 +434,48 @@ export default function EventList({
                           isLeft ? "flex-row" : "flex-row-reverse"
                         )}
                       >
-                        {/* Timeline dot */}
-                        <div className="absolute left-1/2 -translate-x-1/2 z-20">
+                        {/* Timeline dot with enhanced effects */}
+                        <div className="absolute left-1/2 -translate-x-1/2 z-10">
+                          {/* Floating particles for legendary events */}
+                          {isLegendary && (
+                            <>
+                              {[...Array(6)].map((_, i) => (
+                                <motion.div
+                                  key={i}
+                                  className="absolute inset-0 rounded-full"
+                                  style={{
+                                    background: accent,
+                                    width: "2px",
+                                    height: "2px",
+                                  }}
+                                  animate={{
+                                    x: [
+                                      Math.cos((i * Math.PI * 2) / 6) * 20,
+                                      Math.cos((i * Math.PI * 2) / 6) * 30,
+                                      Math.cos((i * Math.PI * 2) / 6) * 20,
+                                    ],
+                                    y: [
+                                      Math.sin((i * Math.PI * 2) / 6) * 20,
+                                      Math.sin((i * Math.PI * 2) / 6) * 30,
+                                      Math.sin((i * Math.PI * 2) / 6) * 20,
+                                    ],
+                                    opacity: [0.8, 0.3, 0.8],
+                                    scale: [1, 1.5, 1],
+                                  }}
+                                  transition={{
+                                    duration: 3 + i * 0.2,
+                                    repeat: Infinity,
+                                    ease: "easeInOut",
+                                    delay: i * 0.1,
+                                  }}
+                                />
+                              ))}
+                            </>
+                          )}
+                          
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            transition={{ delay: (yearIdx * 0.05) + (idx * 0.03) + 0.1, type: "spring" }}
                             className={cn(
                               "relative w-4 h-4 rounded-full border-2 border-white dark:border-neutral-900 shadow-lg",
                               isHighlighted && "ring-4 ring-offset-2 ring-offset-white dark:ring-offset-neutral-900"
@@ -361,47 +483,98 @@ export default function EventList({
                             style={{
                               background: accent,
                               boxShadow: isLegendary
-                                ? `0 0 20px ${accent}80, 0 0 40px ${accent}40`
+                                ? `0 0 20px ${accent}80, 0 0 40px ${accent}40, 0 0 60px ${accent}20`
                                 : `0 0 10px ${accent}60`,
                             }}
+                            whileHover={{
+                              scale: 1.3,
+                              boxShadow: isLegendary
+                                ? `0 0 30px ${accent}90, 0 0 60px ${accent}60`
+                                : `0 0 20px ${accent}80`,
+                            }}
+                            transition={{ 
+                              delay: (yearIdx * 0.05) + (idx * 0.03) + 0.1, 
+                              type: "spring", 
+                              stiffness: 300, 
+                              damping: 20 
+                            }}
                           >
+                            {/* Pulsing glow ring */}
+                            <motion.div
+                              className="absolute inset-0 rounded-full"
+                              style={{
+                                background: accent,
+                                opacity: 0.4,
+                              }}
+                              animate={{
+                                scale: [1, 1.8, 1],
+                                opacity: [0.4, 0, 0.4],
+                              }}
+                              transition={{
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: "easeOut",
+                              }}
+                            />
                             {isLegendary && (
-                              <motion.div
-                                animate={{ scale: [1, 1.5, 1] }}
-                                transition={{ repeat: Infinity, duration: 2 }}
-                                className="absolute inset-0 rounded-full"
-                                style={{
-                                  background: accent,
-                                  opacity: 0.3,
-                                }}
-                              />
+                              <>
+                                <motion.div
+                                  animate={{ scale: [1, 1.5, 1], rotate: [0, 180, 360] }}
+                                  transition={{ repeat: Infinity, duration: 3 }}
+                                  className="absolute inset-0 rounded-full"
+                                  style={{
+                                    background: `conic-gradient(from 0deg, ${accent}40, transparent, ${accent}40)`,
+                                    opacity: 0.5,
+                                  }}
+                                />
+                                <motion.div
+                                  animate={{ scale: [1, 1.3, 1] }}
+                                  transition={{ repeat: Infinity, duration: 2 }}
+                                  className="absolute inset-0 rounded-full"
+                                  style={{
+                                    background: accent,
+                                    opacity: 0.3,
+                                  }}
+                                />
+                              </>
                             )}
                           </motion.div>
                         </div>
 
-                        {/* Event card */}
-                        <div className={cn("w-[calc(50%-2rem)]", isLeft ? "pr-8" : "pl-8")}>
+                        {/* Event card with wave effect */}
+                        <motion.div
+                          className={cn("group w-[calc(50%-2rem)]", isLeft ? "pr-8" : "pl-8")}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: (yearIdx * 0.05) + (idx * 0.03) + 0.15 }}
+                          whileHover={{
+                            y: -4,
+                            transition: { type: "spring", stiffness: 400, damping: 25 },
+                          }}
+                        >
                           {isLegendary ? (
-                            <ElectricBorder
-                              color={accent}
-                              thickness={2}
-                              speed={1}
-                              chaos={0.5}
-                              reducedMotion={reduceLegendaryMotion}
-                              style={{ borderRadius: 24 }}
-                              className="block w-full rounded-3xl overflow-visible"
-                            >
-                              <TimelineEventCard
-                                ev={ev}
-                                accent={accent}
-                                isLegendary={isLegendary}
-                                isHighlighted={isHighlighted}
-                                admin={admin}
-                                onSelect={onSelect}
-                                onEdit={onEdit}
-                                onDelete={onDelete}
-                              />
-                            </ElectricBorder>
+                            <TiltWrapper>
+                              <ElectricBorder
+                                color={accent}
+                                thickness={2}
+                                speed={1}
+                                chaos={0.5}
+                                reducedMotion={reduceLegendaryMotion}
+                                style={{ borderRadius: 24 }}
+                                className="block w-full rounded-3xl overflow-visible"
+                              >
+                                <TimelineEventCard
+                                  ev={ev}
+                                  accent={accent}
+                                  isLegendary={isLegendary}
+                                  isHighlighted={isHighlighted}
+                                  admin={admin}
+                                  onSelect={onSelect}
+                                  onEdit={onEdit}
+                                  onDelete={onDelete}
+                                />
+                              </ElectricBorder>
+                            </TiltWrapper>
                           ) : (
                             <TimelineEventCard
                               ev={ev}
@@ -414,7 +587,7 @@ export default function EventList({
                               onDelete={onDelete}
                             />
                           )}
-                        </div>
+                        </motion.div>
                       </motion.div>
                     );
                   })}
@@ -458,10 +631,11 @@ export default function EventList({
     const hasImage = Boolean(ev.imageData);
     const hasChat = Boolean(ev.chatId);
     
-    // Initialize VanillaTilt on the card element
+    // Initialize VanillaTilt on the card element (only for non-legendary cards)
+    // For legendary cards, tilt is applied to the wrapper outside this component
     const tiltRef = React.useRef<HTMLButtonElement>(null);
     useEffect(() => {
-      if (disableTilt || !tiltRef.current) return;
+      if (disableTilt || !tiltRef.current || isLegendary) return;
       const el = tiltRef.current as any;
       VanillaTilt.init(el, {
         max: 6,
@@ -479,11 +653,11 @@ export default function EventList({
           el?.vanillaTilt?.destroy?.();
         } catch {}
       };
-    }, [disableTilt]);
+    }, [disableTilt, isLegendary]);
 
     return (
       <motion.button
-        ref={tiltRef}
+        ref={!isLegendary ? tiltRef : undefined}
         onClick={() => onSelect(ev)}
         initial={false}
         className={cn(
@@ -494,9 +668,6 @@ export default function EventList({
         )}
         style={{
           backgroundImage: `linear-gradient(135deg, ${accent}15, transparent 60%)`,
-          ...(isLegendary && {
-            boxShadow: `0 8px 24px ${accent}40, 0 0 32px ${accent}30`,
-          }),
         }}
       >
         {isHighlighted && (
@@ -510,17 +681,6 @@ export default function EventList({
             }}
           />
         )}
-
-        {/* Glow effect on hover */}
-        <div
-          aria-hidden
-          className="absolute inset-0 rounded-3xl pointer-events-none transition-opacity opacity-0 group-hover:opacity-100"
-          style={{
-            zIndex: 0,
-            boxShadow: `0 12px 40px ${accent}73, 0 0 60px ${accent}55`,
-            filter: "blur(40px)",
-          }}
-        />
 
         {/* Top accent bar */}
         <div
