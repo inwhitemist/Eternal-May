@@ -725,6 +725,8 @@ export default function LifeTimelineApp() {
                 setEditing(null);
                 setDialogOpen(true);
               }}
+              view={view}
+              setView={setView}
             />
 
             {year !== "all" && (

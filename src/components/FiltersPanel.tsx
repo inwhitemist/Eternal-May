@@ -1,5 +1,5 @@
 import React from "react";
-import { Filter, Plus, Search } from "lucide-react";
+import { Filter, Plus, Search, Calendar, GitBranch } from "lucide-react";
 import { Button, Chip, Input } from "./ui";
 import { MONTHS } from "../utils/helpers";
 
@@ -18,6 +18,8 @@ interface Props {
   resultsCount: number;
   admin: boolean;
   onAdd: () => void;
+  view: "timeline" | "calendar";
+  setView: (v: "timeline" | "calendar") => void;
 }
 
 export default function FiltersPanel({
@@ -35,6 +37,8 @@ export default function FiltersPanel({
   resultsCount,
   admin,
   onAdd,
+  view,
+  setView,
 }: Props) {
   return (
     <section className="-mt-6 mb-6 rounded-3xl border border-black/10 bg-white/70 p-4 shadow-xl backdrop-blur dark:border-white/10 dark:bg-white/5">
@@ -58,7 +62,33 @@ export default function FiltersPanel({
             </Button>
           )}
         </div>
-        <div className="text-xs opacity-70">Найдено {resultsCount} событий</div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 rounded-xl border border-black/10 bg-white/50 p-1 dark:border-white/10 dark:bg-white/5">
+            <button
+              onClick={() => setView("timeline")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                view === "timeline"
+                  ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md"
+                  : "text-neutral-600 hover:bg-white/50 dark:text-neutral-300 dark:hover:bg-white/10"
+              }`}
+            >
+              <GitBranch size={14} />
+              Timeline
+            </button>
+            <button
+              onClick={() => setView("calendar")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+                view === "calendar"
+                  ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-md"
+                  : "text-neutral-600 hover:bg-white/50 dark:text-neutral-300 dark:hover:bg-white/10"
+              }`}
+            >
+              <Calendar size={14} />
+              Calendar
+            </button>
+          </div>
+          <div className="text-xs opacity-70">Найдено {resultsCount} событий</div>
+        </div>
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-3">
         <div>
