@@ -830,7 +830,16 @@ export default function EventList({
             }}
           />
         )}
-
+<div
+          aria-hidden
+          className="absolute inset-0 rounded-3xl pointer-events-none transition-opacity opacity-0 group-hover:opacity-100"
+          style={{
+            zIndex: 0,
+            // два слоя тени: размытие вокруг и яркий ореол
+            boxShadow: `0 12px 40px ${accent}73, 0 0 60px ${accent}55`,
+            filter: "blur(60px)",
+          }}
+        />
         {/* Top accent bar */}
         <div
           className="absolute inset-x-4 top-0 h-1 rounded-b-full"

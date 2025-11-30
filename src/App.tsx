@@ -907,61 +907,58 @@ export default function LifeTimelineApp() {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.3 }}
-        className="fixed inset-0 z-120 overflow-hidden bg-linear-to-br from-white/70 via-white/80 to-rose-50/80 backdrop-blur-2xl dark:from-[#03030a]/95 dark:via-[#090512]/95 dark:to-[#140c1f]/95"
+        className="fixed inset-0 z-120 flex items-center justify-center bg-white/85 backdrop-blur-xl dark:bg-neutral-950/80"
       >
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 top-10 h-64 w-64 rounded-full bg-indigo-200/60 blur-3xl dark:bg-indigo-700/30" />
-          <div className="absolute bottom-0 right-[-10%] h-72 w-72 rounded-full bg-rose-200/70 blur-3xl dark:bg-rose-700/30" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(167,139,250,0.25),transparent_55%),radial-gradient(circle_at_70%_20%,rgba(244,114,182,0.25),transparent_50%)] dark:bg-[radial-gradient(circle_at_30%_20%,rgba(124,115,255,0.2),transparent_60%),radial-gradient(circle_at_75%_15%,rgba(236,72,153,0.25),transparent_55%)]" />
-        </div>
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.96, opacity: 0 }}
           transition={{ type: "spring", stiffness: 220, damping: 25 }}
-          className="relative z-10 mx-auto mt-20 flex w-[min(90vw,420px)] flex-col items-center gap-5 rounded-[28px] border border-white/60 bg-white/85 px-8 py-10 text-center shadow-2xl backdrop-blur-lg dark:border-white/10 dark:bg-neutral-900/85"
+          className="relative flex w-[min(92vw,360px)] flex-col items-center gap-5 rounded-[26px] border border-black/5 bg-white/90 px-8 py-9 text-center shadow-2xl dark:border-white/5 dark:bg-neutral-900/90"
         >
-          <div className="text-[11px] uppercase tracking-[0.45em] text-indigo-500/80 dark:text-indigo-200/70">
+          <p className="text-[11px] uppercase tracking-[0.35em] text-neutral-400 dark:text-neutral-400">
             Eternal May
-          </div>
-          <div className="relative h-20 w-20">
+          </p>
+          <div className="relative flex h-16 w-16 items-center justify-center">
+            <span className="absolute inset-0 rounded-full border border-black/10 dark:border-white/10" />
             <motion.span
-              className="absolute inset-0 rounded-full border-2 border-indigo-300/50 dark:border-indigo-400/30"
+              className="absolute inset-2 rounded-full border border-black/30 dark:border-white/20"
               animate={{ rotate: 360 }}
-              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 7, repeat: Infinity, ease: "linear" }}
             />
-            <motion.span
-              className="absolute inset-3 rounded-full border-2 border-rose-300/60 dark:border-rose-300/30"
-              animate={{ rotate: -360 }}
-              transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-            />
-            <span className="absolute inset-6 rounded-full bg-linear-to-br from-indigo-400/35 to-rose-400/35 blur-xl" />
-            <Loader2
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600 dark:text-rose-100"
-              size={30}
-            />
+            <Loader2 className="text-neutral-800 dark:text-white" size={26} />
           </div>
-          <div className="text-lg font-semibold text-neutral-900 dark:text-white">
-            Бережно раскладываем события
+          <div className="text-sm font-semibold text-neutral-900 dark:text-white">
+            Загрузка событий...
           </div>
           <motion.p
             key={loadingTipIndex}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
-            className="text-sm text-neutral-700/80 dark:text-neutral-300/80"
+            className="text-sm text-neutral-600 dark:text-neutral-300/80"
           >
             {currentLoadingTip}
           </motion.p>
-          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-neutral-900/10 dark:bg-white/10">
-            <motion.span
-              key={`bar-${loadingTipIndex}`}
-              initial={{ width: "0%" }}
-              animate={{ width: "100%" }}
-              transition={{ duration: 2, ease: "easeInOut", repeat: Infinity }}
-              className="block h-full rounded-full bg-linear-to-r from-indigo-400 via-violet-400 to-rose-400"
-            />
+          <div className="mt-1 w-full">
+            <div className="h-1 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
+              <motion.span
+                key={`bar-${loadingTipIndex}`}
+                initial={{ width: "0%" }}
+                animate={{ width: "100%" }}
+                transition={{ duration: 1.8, ease: "easeInOut", repeat: Infinity }}
+                className="block h-full rounded-full bg-linear-to-r from-neutral-900 via-neutral-700 to-neutral-500 dark:from-white dark:via-neutral-100 dark:to-neutral-300"
+              />
+            </div>
           </div>
+          <motion.span
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.6 }}
+            transition={{ duration: 0.6, repeat: Infinity, repeatType: "reverse" }}
+            className="text-[11px] uppercase tracking-[0.2em] text-neutral-400 dark:text-neutral-500"
+          >
+            подожди...
+          </motion.span>
         </motion.div>
       </motion.div>
     )}
