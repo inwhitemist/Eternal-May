@@ -184,6 +184,21 @@ export default function LifeTimelineApp() {
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const [unlockedEvent, setUnlockedEvent] = useState<EventItem | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const titleClickCounterRef = useRef(0);
+  const [showDaysSince2019, setShowDaysSince2019] = useState(false);
+  const daysSinceJuly2019 = Math.max(
+    0,
+    Math.floor(
+      (Date.now() - new Date(2019, 6, 3).getTime()) / (1000 * 60 * 60 * 24)
+    )
+  );
+  const handleSecretTitleClick = () => {
+    if (showDaysSince2019) return;
+    titleClickCounterRef.current += 1;
+    if (titleClickCounterRef.current >= 5) {
+      setShowDaysSince2019(true);
+    }
+  };
 
   const floatingLinesConfig = useMemo(
     () => ({
@@ -488,7 +503,19 @@ export default function LifeTimelineApp() {
         <div className="absolute inset-x-0 top-0 z-20">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
             <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs backdrop-blur-sm dark:border-white/10 dark:bg-white/10 cursor-default">
-              <Sparkles size={14} /> Eternal May
+              <Sparkles size={14} />
+              <span
+                className="cursor-pointer select-none"
+                onClick={handleSecretTitleClick}
+                role="button"
+              >
+                Eternal May
+              </span>
+              {showDaysSince2019 && (
+                <span className="font-semibold text-neutral-600 dark:text-neutral-200">
+                  {daysSinceJuly2019}
+                </span>
+              )}
             </div>
             <div className="relative flex items-center gap-2">
               <div className="relative">
@@ -619,10 +646,9 @@ export default function LifeTimelineApp() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.05 }}
-            className="mt-6 max-w-2xl text-base leading-relaxed text-neutral-700 dark:text-neutral-300 cursor-default"
+            className="mt-6 max-w-2xl text-lg leading-relaxed uppercase tracking-[0.2em] text-neutral-700 dark:text-neutral-300 cursor-default"
           >
-            Таймлайн важных событий моей жизни. Фильтры, поиск, теги и красивый
-            просмотр деталей.
+            Memoria est thesaurus omnium rerum
             
           </motion.p>
         

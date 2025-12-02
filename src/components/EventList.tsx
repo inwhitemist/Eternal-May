@@ -169,9 +169,17 @@ export default function EventList({
           )}
         </div>
         <div className="pt-1 text-sm text-neutral-700 dark:text-neutral-300 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-xs dark:bg-white/10">
-            <CalendarIcon size={14} /> {formatDateHuman(ev.date)}
-          </span>
+          <Tooltip delay={0}>
+  <Tooltip.Trigger asChild>
+    <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2.5 py-1 text-xs dark:bg-white/10">
+      <CalendarIcon size={14} /> {formatDateHuman(ev.date)}
+    </span>
+  </Tooltip.Trigger>
+  <TooltipContent showArrow className="text-xs text-center">
+    <Tooltip.Arrow />
+    {formatElapsedSince(ev.date)}
+  </TooltipContent>
+</Tooltip>
           {showImageHint && hasImage && (
             <Tooltip delay={0}>
               <Tooltip.Trigger asChild>
@@ -286,7 +294,48 @@ export default function EventList({
       </div>
     );
   }
+  function pluralRu(n: number, forms: [string, string, string]) {
+    const abs = Math.abs(n) % 100;
+    if (abs > 10 && abs < 20) return forms[2];
+    const last = abs % 10;
+    if (last === 1) return forms[0];
+    if (last >= 2 && last <= 4) return forms[1];
+    return forms[2];
+  }
 
+  function daysInMonth(year: number, monthIndex: number) {
+    // monthIndex 0..11, возвращает число дней в месяце
+    return new Date(year, monthIndex + 1, 0).getDate();
+  }
+
+  function formatElapsedSince(dateInput: string | Date) {
+    const start = new Date(dateInput);
+    const end = new Date();
+
+    let years = end.getFullYear() - start.getFullYear();
+    let months = end.getMonth() - start.getMonth();
+    let days = end.getDate() - start.getDate();
+
+    if (days < 0) {
+      // заимствуем дни из предыдущего месяца конца периода
+      const prevMonthDays = daysInMonth(end.getFullYear(), end.getMonth() - 1);
+      days += prevMonthDays;
+      months -= 1;
+    }
+    if (months < 0) {
+      months += 12;
+      years -= 1;
+    }
+
+    const parts: string[] = [];
+    if (years > 0) parts.push(`${years} ${pluralRu(years, ["год", "года", "лет"])}`);
+    if (months > 0) parts.push(`${months} ${pluralRu(months, ["месяц", "месяца", "месяцев"])}`);
+    if (days > 0) parts.push(`${days} ${pluralRu(days, ["день", "дня", "дней"])}`);
+
+    if (parts.length === 0) return "менее дня";
+    // Ограничим длину (например первые три компонента) — у нас максимум 3 уже.
+    return parts.join(", ");
+  }
   // Tilt wrapper component for legendary cards
   function TiltWrapper({ children }: { children: React.ReactNode }) {
     const tiltRef = React.useRef<HTMLDivElement>(null);
@@ -884,9 +933,17 @@ export default function EventList({
           </div>
 
           <div className="pt-1 text-sm text-neutral-700 dark:text-neutral-300 flex flex-wrap items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2.5 py-1 text-xs dark:bg-white/10">
-              <CalendarIcon size={14} /> {formatDateHuman(ev.date)}
-            </span>
+            <Tooltip delay={0}>
+  <Tooltip.Trigger asChild>
+    <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2.5 py-1 text-xs dark:bg-white/10">
+      <CalendarIcon size={14} /> {formatDateHuman(ev.date)}
+    </span>
+  </Tooltip.Trigger>
+  <TooltipContent showArrow className="text-xs text-center">
+    <Tooltip.Arrow />
+    {formatElapsedSince(ev.date)}
+  </TooltipContent>
+</Tooltip>
             {hasImage && (
               <Tooltip delay={0}>
                 <Tooltip.Trigger asChild>
