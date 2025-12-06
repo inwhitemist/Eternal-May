@@ -153,13 +153,44 @@ app.get("/api/me", auth, async (req, res) => {
 });
 
 app.get("/api/events", auth, async (req, res) => {
-  const unlocked = await LegendaryUnlock.find({ userId: req.user.uid }).select("code");
-  const codes = unlocked.map(u => u.code);
-  const docs = await Event.find({
-    $or: [{ code: null }, { code: { $in: codes } }]
-  }).sort({ date: 1 });
-  const events = docs.map(d => d.toJSON());
-  res.json({ events });
+  try {
+    const unlocked = await LegendaryUnlock.find({ userId: req.user.uid }).select("code").lean();
+    const codes = unlocked.map(u => u.code);
+    const projection = { userId: 0, __v: 0 };
+    let docs;
+    try {
+      docs = await Event.find({
+        $or: [{ code: null }, { code: { $in: codes } }]
+      })
+      .select(projection)
+      .sort({ date: 1 })
+      .lean()
+      .exec();
+    } catch (err) {
+      const isSortMemoryErr = err && (err.code === 292 || String(err.message).includes("Sort exceeded memory limit"));
+      if (!isSortMemoryErr) throw err;
+
+      const pipeline = [
+        { $match: { $or: [{ code: null }, { code: { $in: codes } }] } },
+        { $project: projection },
+        { $sort: { date: 1 } }
+      ];
+      docs = await Event.aggregate(pipeline, { allowDiskUse: true }).exec();
+    }
+
+    const events = docs.map(d => {
+      if (d._id && !d.id) {
+        d.id = d._id.toString();
+        delete d._id;
+      }
+      return d;
+    });
+
+    res.json({ events });
+  } catch (e) {
+    console.error("Failed to load events", e);
+    res.status(400).json({ error: "bad_request" });
+  }
 });
 
 app.post("/api/events", auth, async (req, res) => {

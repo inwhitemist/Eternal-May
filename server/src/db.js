@@ -43,6 +43,7 @@ EventSchema.index(
   { code: 1 },
   { unique: true, partialFilterExpression: { code: { $exists: true, $ne: null } } }
 );
+EventSchema.index({ date: 1 });
 
 const LegendaryUnlockSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
